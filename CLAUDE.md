@@ -14,6 +14,7 @@
 - `pnpm dev` — Vite 개발 서버
 - `pnpm build` / `pnpm preview` — 프로덕션 빌드 / 미리보기
 - `pnpm check` — `svelte-kit sync` + `svelte-check` (타입 검사)
+- `pnpm check:watch` — 위 타입 검사를 watch 모드로 실행
 - `pnpm lint` — `prettier --check . && eslint .`
 - `pnpm format` — `prettier --write .`
 
@@ -34,7 +35,7 @@
 
 **공유 상태는 컴포넌트가 아니라 `src/lib/*.svelte.js` 모듈에 둡니다.** `.svelte.js` 확장자 덕분에 컴포넌트 밖에서도 `$state`를 쓸 수 있습니다. 모듈 수준 상태는 페이지 이동 후에도 유지됩니다 (SvelteKit은 이동 시 페이지 컴포넌트를 새로 만들기 때문에, 컴포넌트 내부의 `$state`는 초기화됨).
 
-- `masterStore.svelte.js` — `masterData`(dropdown 항목 목록) + `MASTER_FIELDS` 메타데이터. Master Page가 쓰고, 임가공 Plan이 읽는다.
+- `masterStore.svelte.js` — `masterData`(dropdown 항목 목록) + `MASTER_FIELDS` 메타데이터. Master Page가 쓰고, 임가공 Plan이 읽는다. 단, `status` 목록은 Master Page에서 편집할 수 있지만 `addRow`는 status를 항상 `'new'`로 고정하므로 새 행에는 반영되지 않는다.
 - `imgagongStore.svelte.js` — `imgagongRows`와 `addRow` / `deleteSelectedRows`. `addRow`가 `date`(생성 시각, `YYYY-MM-DD HH:MM`)와 `status: 'new'`를 직접 채운다. 페이지의 기간 필터는 `date.slice(0, 7)`을 문자열로 비교한다. 행의 `_selected`는 UI 전용 체크박스 상태다.
 - `theme.svelte.js` — 다크/라이트 모드. `+layout.svelte`가 `<html>`에 `light` class를 붙였다 뗀다. 두 팔레트는 레이아웃의 `<style>`에 CSS 변수(`--bg-page` 등)로 정의되어 있다. 테마가 동작하려면 페이지에서 색을 하드코딩하지 말고 `var(--xxx)`를 써야 한다.
 
