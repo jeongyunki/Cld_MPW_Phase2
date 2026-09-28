@@ -22,7 +22,7 @@
 
 ## 개요
 
-"MPW Console" — SvelteKit 기반 사내 도구 앱입니다 (Svelte 5 runes, Tailwind v4, `adapter-auto`). **클라이언트 전용 프로토타입**으로, 백엔드가 없고 모든 데이터는 브라우저 메모리에만 있습니다 (새로고침하면 사라짐). 코드 주석과 UI 문구는 한국어이며, 주석은 학습용 설명 형태(예: Svelte를 React와 비교)로 쓰여 있습니다. 이 저장소의 새 코드도 같은 스타일을 따릅니다.
+"MPW Plus" — SvelteKit 기반 사내 도구 앱입니다 (Svelte 5 runes, Tailwind v4, `adapter-auto`). **클라이언트 전용 프로토타입**으로, 백엔드가 없고 모든 데이터는 브라우저 메모리에만 있습니다 (새로고침하면 사라짐). 코드 주석과 UI 문구는 한국어이며, 주석은 학습용 설명 형태(예: Svelte를 React와 비교)로 쓰여 있습니다. 이 저장소의 새 코드도 같은 스타일을 따릅니다.
 
 라우트는 4개이며, `src/routes/+layout.svelte`의 `menuItems` 배열에 등록되어 있습니다 (라우트를 추가할 때는 여기에 메뉴 항목도 추가할 것):
 

@@ -36,7 +36,7 @@
     <div class="brand">
       <div class="brand-mark">M</div>
       <div class="brand-text">
-        <div class="brand-title">MPW Console</div>
+        <div class="brand-title">MPW Plus</div>
         <div class="brand-sub">Internal Tools</div>
       </div>
     </div>
