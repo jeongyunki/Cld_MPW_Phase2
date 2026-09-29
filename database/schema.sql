@@ -65,22 +65,26 @@ CREATE INDEX idx_deliverables_mpw_round_process_name ON deliverables (mpw_round,
 -- version은 PRD 4.2절 낙관적 잠금 요구사항을 직접 반영한다.
 -- owner는 "과제 담당자"이자 "등록자" 역할을 겸하며(ERD 결정), FK가 아니라
 -- key-in 자유 텍스트 컬럼이다(ERD가 이미 이렇게 결정함).
+--
+-- 필수 필드(category/assembler/chip_size/pkg_type/owner)는 실행계획 단계의
+-- 잠정 결정이다(PRD FR-IM-01 참조). 실제 운영 전 업무 담당자 확인이 필요하며,
+-- 바뀌면 ALTER TABLE ... {SET|DROP} NOT NULL로 조정하면 된다.
 -- ============================================================
 CREATE TABLE imgagong_plans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamp NOT NULL DEFAULT now(),
   status varchar(50),
-  category varchar(255),
-  assembler varchar(255),
-  chip_size varchar(255),
+  category varchar(255) NOT NULL,
+  assembler varchar(255) NOT NULL,
+  chip_size varchar(255) NOT NULL,
   module varchar(255),
   project_name varchar(255),
   gcm_code varchar(255),
-  pkg_type varchar(255),
+  pkg_type varchar(255) NOT NULL,
   customer varchar(255),
   lot_count integer,
   pkg_qty integer,
-  owner varchar(255),
+  owner varchar(255) NOT NULL,
   updated_by uuid REFERENCES users (id) ON DELETE SET NULL,
   updated_at timestamp,
   version integer NOT NULL DEFAULT 1

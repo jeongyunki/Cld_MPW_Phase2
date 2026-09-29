@@ -88,7 +88,7 @@
 **FR-MG-02: Deliverables 파일 선택 입력**
 - 사용자 스토리: "설계팀으로서, Deliverables Page에 등록된 파일 목록을 팝업으로 보고 원하는 파일을 선택해 즉시 도면을 그리고 싶다" (MPW 관리자도 동일한 방식으로 사용)
 - 입력: "Excel 파일 선택" 버튼 클릭 → 팝업으로 Deliverables 목록 표 표시
-- 처리: 팝업에서 행(차수+공정명)을 선택하면 해당 엑셀 파일을 서버에서 다운로드해 textarea에 자동 입력 → 기존 파싱 로직 재사용
+- 처리: 팝업에서 행(차수+공정명)을 선택하면 해당 엑셀 파일을 서버에서 다운로드 → 클라이언트에서 xlsx 파싱 라이브러리(SheetJS, 6절 참조)로 셀 데이터를 읽어 기존 붙여넣기 파싱 로직(`parseModuleData.js`)이 기대하는 형태로 변환 → textarea에 자동 입력
 - 수용 기준
   - 팝업에 "차수", "공정명", "등록일시" 컬럼 표시 (파일 다운로드 기능과 동일한 데이터 조회)
   - 파일 선택 실패 시 에러 메시지 표시
@@ -103,12 +103,13 @@
 **FR-IM-01: 임가공 Plan 행 추가 (Create)**
 - 사용자 스토리: "설계팀으로서, 새로운 임가공 항목을 신청하기 위해 임가공 작업을 추가하고 필수 정보(조립처, Chip size, PKG Type 등)를 dropdown에서 선택하고 싶다"
 - 입력 (현재 코드 `src/lib/imgagongStore.svelte.js`, `CLAUDE.md` 기준 — Date/Status는 자동 입력이라 제외):
-  - dropdown: 구분(category), 조립처(assembler), Chip size(chipSize), PKG Type(pkgType) — 옵션은 Master Page에서 관리
-  - key-in: Module(module), 과제명(projectName), GCM Code(gcmCode), 고객(customer), LOT수(lotCount, 숫자), PKG 수량(pkgQty, 숫자), 과제 담당자(owner)
+  - dropdown: 구분(category), 조립처(assembler), Chip size(chipSize), PKG Type(pkgType) — 옵션은 Master Page에서 관리, **필수**
+  - key-in: Module(module), 과제명(projectName), GCM Code(gcmCode), 고객(customer), LOT수(lotCount, 숫자), PKG 수량(pkgQty, 숫자) — 선택
+  - key-in: 과제 담당자(owner) — **필수** (등록자 역할을 겸함, 3.3절/6-erd.md 참조)
 - 처리: 새 행을 DB에 저장, 자동으로 생성일시(date, "YYYY-MM-DD HH:MM")와 status('new')를 입력
 - 수용 기준
   - dropdown 항목은 Master Page에서 추가/관리됨
-  - 모든 필수 필드가 채워져야 저장 가능 (어떤 필드가 필수인지는 실행계획 단계에서 업무 담당자와 확정)
+  - 필수 필드(구분/조립처/Chip size/PKG Type/과제 담당자)가 채워져야 저장 가능, 나머지는 선택 — **실행계획 단계의 잠정 결정이며, 실제 운영 전 업무 담당자 확인 필요**
   - 등록 후 즉시 목록에 새 행 추가 (다른 사용자의 화면에도 실시간 반영)
 
 **FR-IM-02: 임가공 Plan 목록 조회 (Read)**
@@ -150,7 +151,7 @@
 **FR-IM-06: 임가공 의뢰 일괄 확정**
 - 사용자 스토리: "MPW 관리자로서, 설계팀이 등록한 여러 임가공 항목을 월별로 취합해서 한 번에 '의뢰' 상태로 확정하고 싶다"
 - 입력: 체크박스로 여러 행 선택 → "의뢰 확정" 버튼
-- 처리: 선택된 행들의 Status를 일괄로 의뢰 확정 상태로 변경 (구체적 상태값 명칭은 Master Page의 Status 목록에 추가 필요 — 현재 'new'/'checked'/'approved' 외 신규 값)
+- 처리: 선택된 행들의 Status를 일괄로 `'requested'`(의뢰 확정)로 변경 (실행계획 단계에서 명칭 확정, Master Page Status 목록에 'new'/'checked'/'approved'와 함께 등록됨)
 - 수용 기준
   - 확정 전 확인 팝업: "선택된 X개 항목을 의뢰 확정하시겠습니까?"
   - MPW 관리자 권한을 가진 사용자만 이 버튼을 사용할 수 있음
@@ -326,6 +327,15 @@
 - 구현 복잡도 최소
 
 **향후 (선택사항)**: AWS S3/MinIO 등으로 전환 (확장성 및 백업 용이)
+
+#### 클라이언트 xlsx 파싱: **SheetJS (`xlsx` 패키지)**
+**배경**: FR-MG-02(Deliverables 파일 선택)는 서버에서 받은 `.xlsx` 바이너리를 기존 붙여넣기 파싱 로직(`parseModuleData.js`, 탭 구분 텍스트 전제)이 처리 가능한 형태로 브라우저에서 변환해야 한다. 이 변환을 위한 라이브러리가 이전 문서들에는 없었다(실행계획 단계에서 발견).
+**근거**
+- 브라우저와 Node 양쪽에서 동작하는 사실상 표준 라이브러리, 자료/예제가 많아 초보자도 접근하기 쉬움
+- 첫 번째 시트를 2차원 배열로 읽는 정도의 단순한 용도에 충분(과한 기능 사용 안 함)
+
+**대안** (고려 후 제외)
+- `exceljs`: 기능이 더 많지만(엑셀 쓰기/스타일링 등) 이번엔 읽기만 필요해 과함
 
 ### 규모 재검토 (전체 1000명, 동시 접속 50~100명 기준)
 
@@ -511,8 +521,8 @@
 
 | 용어 | 현재 코드상 초기값 | 비고 |
 |---|---|---|
-| Status | 'new', 'checked', 'approved' | Master Page에서 편집 가능하나, 신규 임가공 행은 항상 'new'로 고정됨 |
-| 구분 | (구체 항목은 코드에 "조립비 등 5종"으로만 기록, 정확한 값은 확인 필요) | 도메인정의서 8절 미해결 항목 — 다음 단계에서 실제 업무 담당자에게 확인 필요 |
+| Status | 'new', 'checked', 'approved', 'requested'(의뢰 확정, 실행계획 단계에서 추가 결정) | Master Page에서 편집 가능하나, 신규 임가공 행은 항상 'new'로 고정됨 |
+| 구분 | '조립비 (Package)', '개발비 (Design Charge)', '개발비 (PCB Tooling)', '산학', 'Sawing' | 코드(`masterStore.svelte.js`)에서 직접 확인 완료 — 이전 "확인 필요" 표기는 해소됨 |
 | 조립처 | 'Amkor (광주)', 'chippac(영종도)', '조립처3', '조립처4', '조립처5' | 뒤 3개는 임시 placeholder로 보임 — 실제 조립처명으로 교체 필요 |
 | Chip size | '8인치', '12인치', 'ETC' | 웨이퍼 인치 단위 |
 | PKG Type | 'p-type1', 'p-type2', 'p-type3' | 실제 패키지 타입명으로 교체 필요할 수 있음 |

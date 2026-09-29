@@ -20,7 +20,7 @@
  */
 
 export const masterData = $state({
-  status: ['new', 'checked', 'approved'],
+  status: ['new', 'checked', 'approved', 'requested'],
   category: ['조립비 (Package)', '개발비 (Design Charge)', '개발비 (PCB Tooling)', '산학', 'Sawing'],
   assembler: ['Amkor (광주)', 'chippac(영종도)', '조립처3', '조립처4', '조립처5'],
   chipSize: ['8인치', '12인치', 'ETC'],
