@@ -1,0 +1,916 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MPW Plus API",
+    "version": "0.1.0",
+    "description": "MPW Plus 2차 개발 백엔드 API (Deliverables / 임가공 Plan / Master Page / 인증)"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "로컬 개발 서버"
+    }
+  ],
+  "security": [
+    { "cookieAuth": [] }
+  ],
+  "tags": [
+    { "name": "auth", "description": "인증 (세션 쿠키 기반)" },
+    { "name": "health", "description": "헬스체크" },
+    { "name": "deliverables", "description": "Deliverables Page" },
+    { "name": "imgagong-plans", "description": "임가공 Plan" },
+    { "name": "master-items", "description": "Master Page" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "서버/DB 헬스체크",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "정상 동작",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "이메일+비밀번호로 로그인, 성공 시 세션 쿠키 발급",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "format": "password" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "로그인 성공. 응답 헤더 Set-Cookie로 세션 쿠키가 발급된다.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": {
+            "description": "email 또는 password 누락",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "이메일 또는 비밀번호 불일치",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "로그아웃, 세션 종료",
+        "responses": {
+          "200": {
+            "description": "로그아웃 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["auth"],
+        "summary": "현재 로그인한 사용자 정보 조회",
+        "responses": {
+          "200": {
+            "description": "로그인된 사용자 정보",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deliverables": {
+      "get": {
+        "tags": ["deliverables"],
+        "summary": "Deliverables 목록 조회 (페이지네이션, 차수/공정명 검색, 최신순 정렬)",
+        "parameters": [
+          { "$ref": "#/components/parameters/PageParam" },
+          { "$ref": "#/components/parameters/LimitParam" },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "차수(mpw_round) 또는 공정명(process_name)으로 검색",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deliverables 목록",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeliverableListResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["deliverables"],
+        "summary": "Deliverables 등록 (엑셀 파일 업로드 포함, 최대 10MB)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["mpw_round", "process_name", "file"],
+                "properties": {
+                  "mpw_round": { "type": "string", "description": "MPW 차수" },
+                  "process_name": { "type": "string", "description": "공정명" },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "엑셀 파일 (최대 10MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "등록 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Deliverable" }
+              }
+            }
+          },
+          "400": {
+            "description": "mpw_round/process_name 미입력 또는 파일 크기(10MB) 초과",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deliverables/{id}/download": {
+      "get": {
+        "tags": ["deliverables"],
+        "summary": "Deliverables 엑셀 파일 다운로드",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "파일 바이너리 스트림",
+            "content": {
+              "application/octet-stream": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "존재하지 않는 Deliverables 항목",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deliverables/{id}": {
+      "delete": {
+        "tags": ["deliverables"],
+        "summary": "Deliverables 삭제 (등록자 본인 또는 관리자만 가능, 서버 파일도 함께 제거)",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "삭제 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "등록자 본인도 관리자도 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "존재하지 않는 Deliverables 항목",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imgagong-plans": {
+      "get": {
+        "tags": ["imgagong-plans"],
+        "summary": "임가공 Plan 목록 조회 (생성일시 기간 필터, 페이지네이션, 최신순 정렬)",
+        "parameters": [
+          { "$ref": "#/components/parameters/PageParam" },
+          { "$ref": "#/components/parameters/LimitParam" },
+          {
+            "name": "startMonth",
+            "in": "query",
+            "description": "조회 시작 년월 (YYYY-MM), created_at 기준",
+            "required": false,
+            "schema": { "type": "string", "example": "2026-01" }
+          },
+          {
+            "name": "endMonth",
+            "in": "query",
+            "description": "조회 종료 년월 (YYYY-MM), created_at 기준",
+            "required": false,
+            "schema": { "type": "string", "example": "2026-12" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "임가공 Plan 목록",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ImgagongPlanListResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["imgagong-plans"],
+        "summary": "임가공 Plan 행 추가 (status는 서버가 항상 'new'로 고정)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ImgagongPlanCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "생성 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ImgagongPlan" }
+              }
+            }
+          },
+          "400": {
+            "description": "필수 필드(구분/조립처/Chip size/PKG Type/과제 담당자) 누락",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imgagong-plans/bulk-confirm": {
+      "patch": {
+        "tags": ["imgagong-plans"],
+        "summary": "선택된 여러 행을 일괄로 'requested'(의뢰 확정) 상태로 변경 (관리자 전용)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["ids"],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "uuid" },
+                    "description": "일괄 확정할 임가공 Plan id 목록"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "일괄 확정 성공, 상태가 변경된 행 목록 반환",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/ImgagongPlan" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ids가 비어있거나 배열이 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "MPW 관리자 권한이 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imgagong-plans/stream": {
+      "get": {
+        "tags": ["imgagong-plans"],
+        "summary": "임가공 Plan 실시간 변경사항 구독 (SSE)",
+        "responses": {
+          "200": {
+            "description": "SSE 스트림, 일반 요청-응답이 아님. 연결이 유지되는 동안 임가공 Plan의 생성/수정/삭제/일괄확정 이벤트가 text/event-stream 형식으로 계속 전송된다.",
+            "content": {
+              "text/event-stream": {
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imgagong-plans/{id}": {
+      "patch": {
+        "tags": ["imgagong-plans"],
+        "summary": "임가공 Plan 행 편집 (낙관적 잠금, body에 version 필수)",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdParam" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ImgagongPlanUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "수정 성공 (version+1)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ImgagongPlan" }
+              }
+            }
+          },
+          "400": {
+            "description": "body에 version이 없거나 필드 값이 올바르지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "존재하지 않는 임가공 Plan 행",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "409": {
+            "description": "다른 사용자가 먼저 수정했습니다 (version 불일치)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "error": { "message": "다른 사용자가 먼저 수정했습니다" } }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["imgagong-plans"],
+        "summary": "임가공 Plan 행 삭제 (owner 본인 또는 관리자만 가능)",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "삭제 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "owner 본인도 관리자도 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "error": { "message": "이 행을 삭제할 권한이 없습니다" } }
+              }
+            }
+          },
+          "404": {
+            "description": "존재하지 않는 임가공 Plan 행",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/master-items": {
+      "get": {
+        "tags": ["master-items"],
+        "summary": "전체 Master 항목 조회 (field_name별)",
+        "responses": {
+          "200": {
+            "description": "field_name(status/category/assembler/chip_size/pkg_type)별 Master 항목 목록",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MasterItemsGrouped" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["master-items"],
+        "summary": "Master 항목 추가 (관리자 전용)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["field_name", "item_name"],
+                "properties": {
+                  "field_name": { "$ref": "#/components/schemas/MasterFieldName" },
+                  "item_name": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "추가 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MasterItem" }
+              }
+            }
+          },
+          "400": {
+            "description": "field_name이 허용값이 아니거나 item_name이 빈 문자열",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "MPW 관리자 권한이 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/master-items/{id}": {
+      "delete": {
+        "tags": ["master-items"],
+        "summary": "Master 항목 삭제 (관리자 전용, 삭제 자체는 막지 않고 사용 중인 임가공 Plan 행 개수를 응답에 포함)",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "삭제 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MasterItemDeleteResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "로그인되어 있지 않음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "MPW 관리자 권한이 없음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "존재하지 않는 Master 항목",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "connect.sid",
+        "description": "express-session 기반 세션 쿠키. Passport.js Local Strategy 로그인(POST /api/auth/login) 성공 시 발급된다."
+      }
+    },
+    "parameters": {
+      "IdParam": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "PageParam": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "minimum": 1, "default": 1 }
+      },
+      "LimitParam": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "minimum": 1, "default": 20 }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["message"],
+            "properties": {
+              "message": { "type": "string" }
+            }
+          }
+        }
+      },
+      "DeleteResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "nullable": true },
+          "email": { "type": "string", "format": "email", "nullable": true },
+          "role": { "type": "string", "nullable": true, "description": "예: 'admin'(MPW 관리자) 등" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer" }
+        }
+      },
+      "Deliverable": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "mpw_round": { "type": "string", "nullable": true, "description": "MPW 차수" },
+          "process_name": { "type": "string", "nullable": true, "description": "공정명" },
+          "file_path": { "type": "string", "nullable": true, "description": "업로드된 엑셀 파일 경로" },
+          "registered_by": { "type": "string", "format": "uuid", "nullable": true, "description": "등록자 -> users.id" },
+          "created_at": { "type": "string", "format": "date-time", "description": "등록일시" },
+          "updated_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer" }
+        }
+      },
+      "DeliverableListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Deliverable" }
+          },
+          "total": { "type": "integer" },
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" }
+        }
+      },
+      "ImgagongPlan": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "created_at": { "type": "string", "format": "date-time", "description": "생성일시. 기간 필터가 이 값을 기준으로 함" },
+          "status": { "type": "string", "nullable": true, "description": "예: 'new'/'checked'/'approved'/'requested'. 신규 행은 항상 'new'" },
+          "category": { "type": "string", "description": "구분" },
+          "assembler": { "type": "string", "description": "조립처" },
+          "chip_size": { "type": "string", "description": "Chip size" },
+          "module": { "type": "string", "nullable": true, "description": "Module" },
+          "project_name": { "type": "string", "nullable": true, "description": "과제명" },
+          "gcm_code": { "type": "string", "nullable": true, "description": "GCM Code" },
+          "pkg_type": { "type": "string", "description": "PKG Type" },
+          "customer": { "type": "string", "nullable": true, "description": "고객" },
+          "lot_count": { "type": "integer", "nullable": true, "description": "LOT수" },
+          "pkg_qty": { "type": "integer", "nullable": true, "description": "PKG 수량" },
+          "owner": { "type": "string", "description": "과제 담당자 (등록자 역할 겸임)" },
+          "updated_by": { "type": "string", "format": "uuid", "nullable": true, "description": "수정자 -> users.id" },
+          "updated_at": { "type": "string", "format": "date-time", "nullable": true, "description": "수정일시" },
+          "version": { "type": "integer", "description": "낙관적 잠금용 버전 번호" }
+        },
+        "required": ["id", "created_at", "category", "assembler", "chip_size", "pkg_type", "owner", "version"]
+      },
+      "ImgagongPlanCreate": {
+        "type": "object",
+        "required": ["category", "assembler", "chip_size", "pkg_type", "owner"],
+        "properties": {
+          "category": { "type": "string", "description": "구분" },
+          "assembler": { "type": "string", "description": "조립처" },
+          "chip_size": { "type": "string", "description": "Chip size" },
+          "module": { "type": "string", "nullable": true },
+          "project_name": { "type": "string", "nullable": true },
+          "gcm_code": { "type": "string", "nullable": true },
+          "pkg_type": { "type": "string", "description": "PKG Type" },
+          "customer": { "type": "string", "nullable": true },
+          "lot_count": { "type": "integer", "nullable": true },
+          "pkg_qty": { "type": "integer", "nullable": true },
+          "owner": { "type": "string", "description": "과제 담당자" }
+        }
+      },
+      "ImgagongPlanUpdate": {
+        "type": "object",
+        "required": ["version"],
+        "properties": {
+          "version": { "type": "integer", "description": "현재 수정하려는 기준 버전 번호 (낙관적 잠금)" },
+          "status": { "type": "string", "nullable": true },
+          "category": { "type": "string", "nullable": true },
+          "assembler": { "type": "string", "nullable": true },
+          "chip_size": { "type": "string", "nullable": true },
+          "module": { "type": "string", "nullable": true },
+          "project_name": { "type": "string", "nullable": true },
+          "gcm_code": { "type": "string", "nullable": true },
+          "pkg_type": { "type": "string", "nullable": true },
+          "customer": { "type": "string", "nullable": true },
+          "lot_count": { "type": "integer", "nullable": true },
+          "pkg_qty": { "type": "integer", "nullable": true },
+          "owner": { "type": "string", "nullable": true }
+        }
+      },
+      "ImgagongPlanListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ImgagongPlan" }
+          },
+          "total": { "type": "integer" },
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" }
+        }
+      },
+      "MasterFieldName": {
+        "type": "string",
+        "enum": ["status", "category", "assembler", "chip_size", "pkg_type"],
+        "description": "status | category | assembler | chip_size | pkg_type"
+      },
+      "MasterItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "field_name": { "$ref": "#/components/schemas/MasterFieldName" },
+          "item_name": { "type": "string", "description": "항목명" },
+          "sort_order": { "type": "integer", "nullable": true, "description": "표시 순서" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time", "nullable": true },
+          "version": { "type": "integer" }
+        }
+      },
+      "MasterItemsGrouped": {
+        "type": "object",
+        "description": "field_name을 key로 하는 Master 항목 그룹",
+        "properties": {
+          "status": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MasterItem" }
+          },
+          "category": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MasterItem" }
+          },
+          "assembler": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MasterItem" }
+          },
+          "chip_size": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MasterItem" }
+          },
+          "pkg_type": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MasterItem" }
+          }
+        }
+      },
+      "MasterItemDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "affectedImgagongPlanCount": {
+            "type": "integer",
+            "description": "삭제된 항목을 사용 중이던 imgagong_plans 행 개수 (삭제는 막지 않음)"
+          }
+        }
+      }
+    }
+  }
+}
