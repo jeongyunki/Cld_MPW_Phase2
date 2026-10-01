@@ -40,6 +40,19 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "서버 또는 DB(SELECT 1) 연결 실패",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "error" }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -531,7 +544,7 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" },
-                "example": { "error": { "message": "다른 사용자가 먼저 수정했습니다" } }
+                "example": { "error": { "message": "다른 사용자가 먼저 이 행을 수정했습니다. 페이지를 새로고침한 후 다시 시도하세요" } }
               }
             }
           }
