@@ -7,6 +7,13 @@
 		"context7": {
 			"command": "cmd",
 			"args": ["/c", "npx", "-y", "@upstash/context7-mcp"]
+		},
+		"postgresql-mcp": {
+			"command": "cmd",
+			"args": ["/c", "npx", "-y", "@henkey/postgres-mcp-server"],
+			"env": {
+				"POSTGRES_CONNECTION_STRING": "${POSTGRES_CONNECTION_STRING}"
+			}
 		}
 	}
 }

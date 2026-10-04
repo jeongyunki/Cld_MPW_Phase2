@@ -31,6 +31,3 @@ desktop.ini
 
 # Claude Code 개인 설정 (공유용 settings.json은 커밋)
 .claude/settings.local.json
-
-# 로컬 DB 접속 정보가 들어 있는 MCP 설정
-.mcp.backend.json
