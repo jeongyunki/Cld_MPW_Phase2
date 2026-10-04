@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-이 파일은 Claude Code(claude.ai/code)가 이 저장소에서 작업할 때 참고할 안내서입니다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 작업 규칙
 
@@ -19,6 +19,8 @@
 - `pnpm format` — `prettier --write .`
 
 테스트 러너는 설정되어 있지 않습니다.
+
+목 API 서버 (`mockup/`, 별도 스크립트 없음): `cd mockup && node server.js` → `http://localhost:3000/api/*`가 `swagger/swagger.json` 기반 목 응답을, `http://localhost:3000/docs`가 Swagger UI를 제공합니다. `mockup` 의존성도 루트 `pnpm-lock.yaml`에 함께 기록됩니다.
 
 ## 개요
 
@@ -42,6 +44,22 @@
 이 스토어들이 향후 서버 연동의 유일한 접점입니다 (스토어 내부를 `fetch`로 교체하고, 페이지 코드는 그대로 두는 방식).
 
 `src/lib/parseModuleData.js`는 Svelte에 의존하지 않는 순수 JS입니다. 붙여넣은 엑셀 텍스트를 파싱합니다: A열 = 이름, D/E열 = width/height, H/I열 = x/y. `One Shot Size`, `MostOuter ScribeLine Size`, `Step pitch` 라벨이 붙은 행은 chip 정보가 됩니다. 네 개의 숫자 셀이 모두 변환되는 행만 module로 인정합니다 (이 방식으로 헤더 행이 걸러짐).
+
+## 2차 개발 설계 (백엔드 미구현)
+
+이 저장소는 사내에서 운영 중인 MPW Plus 1차 시스템(저장소 밖)에 붙을 **2차 개발분**입니다. 위의 프론트엔드는 현재 코드이고, 백엔드는 아직 설계 문서만 있습니다. 구현 작업 전에 아래 문서를 근거로 삼으세요.
+
+- `docs/1`~`8` — 도메인정의서 → PRD → 사용자 시나리오 → 구조설계 원칙 → 아키텍처 → ERD → 실행계획 → 와이어프레임 순서. 구현 Task(DB-1~4, BE-1~7, FE-1~7)와 의존성은 `docs/7-execution-plan.md`에 있습니다.
+- `database/schema.sql` — ERD에서 만든 PostgreSQL DDL (`users`, `deliverables`, `imgagong_plans`, `master_items`). 실제 마이그레이션은 Knex로 옮길 예정입니다.
+- `swagger/swagger.json` — OpenAPI 3.0.3 REST 스펙 (`/auth/*`, `/deliverables`, `/imgagong-plans`(+`bulk-confirm`, SSE `stream`), `/master-items`). 문서와 스펙이 어긋나면 문서 기준으로 맞춥니다.
+
+확정된 스택: Express + Knex + PostgreSQL, SSE(단일 프로세스), 로컬 파일 업로드, 낙관적 잠금(`version` 컬럼), 인증은 Passport.js Local + 세션 (나중에 1차 시스템 인증으로 바꿀 수 있도록 `middleware/auth.js` 하나에 격리).
+
+`docs/4-project-structure-principles.md`에서 정한 구조 원칙의 핵심:
+
+- 프론트: 페이지 → 스토어(`*.svelte.js`) → `src/lib/api/*.js`(새로 만들 API 클라이언트 계층) → 백엔드. 페이지는 `fetch`를 직접 호출하지 않습니다. 신규 라우트는 `/deliverables`입니다.
+- 백엔드: 루트의 `server/` 아래에 리소스별 폴더(`imgagong-plans/` 등)를 두고, 그 안에 `*.routes.js` → `*.controller.js` → `*.service.js` → `*.repository.js`(Knex)를 둡니다. 역방향 import는 금지합니다.
+- 네이밍: API 경로는 kebab-case 복수형, DB 테이블·컬럼은 snake_case입니다. camelCase 변환은 repository 계층에서만 합니다.
 
 ## 규칙
 
