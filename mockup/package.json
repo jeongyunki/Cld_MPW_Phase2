@@ -1,0 +1,18 @@
+{
+  "name": "mockup",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14",
+    "openapi-mock-express-middleware": "^4.4.0",
+    "swagger-ui-express": "^5.0.1"
+  }
+}

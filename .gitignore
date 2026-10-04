@@ -21,3 +21,13 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Logs
+*.log
+
+# Editor / OS
+.idea
+desktop.ini
+
+# Claude Code 개인 설정 (공유용 settings.json은 커밋)
+.claude/settings.local.json
