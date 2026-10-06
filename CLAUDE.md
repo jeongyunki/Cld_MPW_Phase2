@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 명령어
 
-패키지 매니저는 **pnpm**입니다 (`.npmrc`에 `engine-strict=true`).
+패키지 매니저는 **pnpm**입니다 (`.npmrc`에 `engine-strict=true`). 저장소는 pnpm 워크스페이스로, 루트(프론트) + `mockup/` + `server/`가 `pnpm-workspace.yaml`의 `packages`에 등록되어 있고 lockfile은 루트 `pnpm-lock.yaml` 하나입니다. 의존성 설치는 루트에서 `pnpm install` 한 번으로 세 곳이 모두 설치됩니다. 하위 패키지에 의존성을 추가할 때는 해당 폴더에서 `pnpm add` 하거나 루트에서 `pnpm --filter <server|mockup> add`를 씁니다 (새 하위 패키지를 만들면 `packages`에 먼저 등록할 것 — 등록하지 않으면 lockfile에서 다른 패키지 항목이 덮어써질 수 있음).
 
 - `pnpm dev` — Vite 개발 서버
 - `pnpm build` / `pnpm preview` — 프로덕션 빌드 / 미리보기
@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 테스트 러너는 설정되어 있지 않습니다.
 
-목 API 서버 (`mockup/`, 별도 스크립트 없음): `cd mockup && node server.js` → `http://localhost:3000/api/*`가 `swagger/swagger.json` 기반 목 응답을, `http://localhost:3000/docs`가 Swagger UI를 제공합니다. `mockup` 의존성도 루트 `pnpm-lock.yaml`에 함께 기록됩니다.
+목 API 서버 (`mockup/`, 별도 스크립트 없음): `cd mockup && node server.js` → `http://localhost:3000/api/*`가 `swagger/swagger.json` 기반 목 응답을, `http://localhost:3000/docs`가 Swagger UI를 제공합니다.
 
 ## 개요
 

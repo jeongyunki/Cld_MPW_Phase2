@@ -49,11 +49,11 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: `server/` 디렉토리에 Knex와 `pg` 드라이버를 설치하고, dev/production 환경을 분기하는 `knexfile.js`와 이를 바탕으로 Knex 인스턴스를 만들어 export하는 `server/src/db/connection.js`를 작성한다. 이후 모든 백엔드 리소스 모듈이 DB에 접근하는 유일한 진입점을 만드는 것이 목적이다.
 
 **완료 조건**
-- [ ] `server/package.json`에 `knex`, `pg`가 의존성으로 추가되고, `server` 디렉토리에서 `pnpm install`이 에러 없이 끝난다.
-- [ ] `server/knexfile.js`에 `development`/`production` 두 블록이 있고, 각각 `client: 'pg'`, `connection: process.env.DATABASE_URL`, `pool: { min, max }`(환경변수로 오버라이드 가능, 기본값 예: `min:2, max:10`, PRD 6절 "규모 재검토" 반영)가 채워져 있다.
-- [ ] `server/src/db/connection.js`가 `knexfile.js`를 읽어 `NODE_ENV` 기준으로 Knex 인스턴스 하나를 생성해 export한다.
-- [ ] `server/.env.example`에 `DATABASE_URL`, `DB_POOL_MIN`, `DB_POOL_MAX` 키가 추가된다.
-- [ ] `npx knex --help`(또는 `node -e "require('./knexfile.js')"`)가 문법 에러 없이 실행된다(실제 PostgreSQL 연결 검증은 DB-4에서).
+- [x] `server/package.json`에 `knex`, `pg`가 의존성으로 추가되고, `server` 디렉토리에서 `pnpm install`이 에러 없이 끝난다.
+- [x] `server/knexfile.js`에 `development`/`production` 두 블록이 있고, 각각 `client: 'pg'`, `connection: process.env.DATABASE_URL`, `pool: { min, max }`(환경변수로 오버라이드 가능, 기본값 예: `min:2, max:10`, PRD 6절 "규모 재검토" 반영)가 채워져 있다.
+- [x] `server/src/db/connection.js`가 `knexfile.js`를 읽어 `NODE_ENV` 기준으로 Knex 인스턴스 하나를 생성해 export한다.
+- [x] `server/.env.example`에 `DATABASE_URL`, `DB_POOL_MIN`, `DB_POOL_MAX` 키가 추가된다.
+- [x] `npx knex --help`(또는 `node -e "require('./knexfile.js')"`)가 문법 에러 없이 실행된다(실제 PostgreSQL 연결 검증은 DB-4에서).
 
 **의존성**: 없음 (DB 영역의 시작점)
 
@@ -68,11 +68,11 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: 이미 검토 완료된 `database/schema.sql`의 DDL(4개 테이블, extension, index, 트리거)을 `server/src/db/migrations/`의 Knex migration 파일로 옮긴다. 스키마를 다시 설계하지 않고 그대로 이관한다.
 
 **완료 조건**
-- [ ] `npx knex migrate:make create_initial_schema`로 생성한 migration 파일 **하나**가 `server/src/db/migrations/`에 있다(초기 1회 적용이므로 테이블별로 쪼개지 않는다).
-- [ ] `up()`에서 `pgcrypto` extension 생성과 `users`/`deliverables`/`imgagong_plans`/`master_items` 4개 테이블의 컬럼/타입/제약(PK, `users.email` UNIQUE, FK 2개, NOT NULL, DEFAULT)이 `schema.sql`과 1:1 대조 기준으로 빠짐없이 반영된다.
-- [ ] `schema.sql`의 인덱스 3개(`idx_deliverables_mpw_round_process_name`, `idx_imgagong_plans_created_at`, `idx_master_items_field_name`)가 모두 생성된다.
-- [ ] `updated_at` 자동 갱신 트리거(`schema.sql` 참고용) 포함 여부를 이 Task에서 최종 결정하고 반영(포함 시 raw SQL로, 제외 시 이유를 migration 파일 주석에 남김).
-- [ ] `down()`이 `up()`을 역순(트리거/함수 → 테이블 → extension)으로 되돌린다(왕복 실행 검증은 DB-4).
+- [x] `npx knex migrate:make create_initial_schema`로 생성한 migration 파일 **하나**가 `server/src/db/migrations/`에 있다(초기 1회 적용이므로 테이블별로 쪼개지 않는다).
+- [x] `up()`에서 `pgcrypto` extension 생성과 `users`/`deliverables`/`imgagong_plans`/`master_items` 4개 테이블의 컬럼/타입/제약(PK, `users.email` UNIQUE, FK 2개, NOT NULL, DEFAULT)이 `schema.sql`과 1:1 대조 기준으로 빠짐없이 반영된다.
+- [x] `schema.sql`의 인덱스 3개(`idx_deliverables_mpw_round_process_name`, `idx_imgagong_plans_created_at`, `idx_master_items_field_name`)가 모두 생성된다.
+- [x] `updated_at` 자동 갱신 트리거(`schema.sql` 참고용) 포함 여부를 이 Task에서 최종 결정하고 반영(포함 시 raw SQL로, 제외 시 이유를 migration 파일 주석에 남김).
+- [x] `down()`이 `up()`을 역순(트리거/함수 → 테이블 → extension)으로 되돌린다(왕복 실행 검증은 DB-4).
 
 **의존성**: DB-1
 
@@ -87,10 +87,10 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: `server/src/db/seeds/`에 `master_items`의 초기 dropdown 데이터를 넣는 시드 스크립트를 작성한다.
 
 **완료 조건**
-- [ ] `npx knex seed:make 01_master_items`로 생성한 파일이 `server/src/db/seeds/`에 있다.
-- [ ] `field_name`(status/category/assembler/chip_size/pkg_type) × `item_name` × `sort_order` 조합으로 총 **20행**이 삽입된다. 값은 **현재 코드 `src/lib/masterStore.svelte.js`의 실제 초기값**을 기준으로 한다(status 4개 — `new`/`checked`/`approved`/`requested`, 구분 5개, 조립처 5개, Chip size 3개, PKG Type 3개). `requested`(의뢰 확정)는 FR-IM-06 결정에 따라 실행계획 단계에서 코드에 추가됨.
-- [ ] `sort_order`는 `masterStore.svelte.js`의 배열 순서(index)를 그대로 반영한다.
-- [ ] seed는 재실행해도 중복 삽입되지 않는다(`del()` 후 insert하는 초기화 방식).
+- [x] `npx knex seed:make 01_master_items`로 생성한 파일이 `server/src/db/seeds/`에 있다.
+- [x] `field_name`(status/category/assembler/chip_size/pkg_type) × `item_name` × `sort_order` 조합으로 총 **20행**이 삽입된다. 값은 **현재 코드 `src/lib/masterStore.svelte.js`의 실제 초기값**을 기준으로 한다(status 4개 — `new`/`checked`/`approved`/`requested`, 구분 5개, 조립처 5개, Chip size 3개, PKG Type 3개). `requested`(의뢰 확정)는 FR-IM-06 결정에 따라 실행계획 단계에서 코드에 추가됨.
+- [x] `sort_order`는 `masterStore.svelte.js`의 배열 순서(index)를 그대로 반영한다.
+- [x] seed는 재실행해도 중복 삽입되지 않는다(`del()` 후 insert하는 초기화 방식).
 
 **의존성**: DB-1, DB-2
 
@@ -105,11 +105,11 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: 로컬에 실제 PostgreSQL을 띄우고 DB-1~DB-3의 산출물이 처음부터 끝까지 에러 없이 적용되는지 검증한 뒤, 재현 가능한 최소 셋업 절차를 문서화한다.
 
 **완료 조건**
-- [ ] 로컬 PostgreSQL이 기동되어 있고(설치형 또는 Docker), 이를 가리키는 `DATABASE_URL`로 `server/.env`가 작성되어 있다.
-- [ ] `npx knex migrate:latest`가 에러 없이 끝나고, 4개 테이블이 실제로 생성된 것을 확인한다.
-- [ ] `npx knex seed:run`이 에러 없이 끝나고, `SELECT COUNT(*) FROM master_items;` 결과가 20과 일치한다.
-- [ ] `npx knex migrate:rollback` 후 다시 `migrate:latest`를 실행해도 에러 없이 끝난다.
-- [ ] PostgreSQL 설치/기동부터 `migrate:latest`/`seed:run`까지의 명령어 순서를 문서(README 또는 `docs/` 하위)로 남긴다.
+- [x] 로컬 PostgreSQL이 기동되어 있고(설치형 또는 Docker), 이를 가리키는 `DATABASE_URL`로 `server/.env`가 작성되어 있다.
+- [x] `npx knex migrate:latest`가 에러 없이 끝나고, 4개 테이블이 실제로 생성된 것을 확인한다.
+- [x] `npx knex seed:run`이 에러 없이 끝나고, `SELECT COUNT(*) FROM master_items;` 결과가 20과 일치한다.
+- [x] `npx knex migrate:rollback` 후 다시 `migrate:latest`를 실행해도 에러 없이 끝난다.
+- [x] PostgreSQL 설치/기동부터 `migrate:latest`/`seed:run`까지의 명령어 순서를 문서(README 또는 `docs/` 하위)로 남긴다.
 
 **의존성**: DB-1, DB-2, DB-3
 

@@ -1,3 +1,7 @@
+packages:
+  - mockup
+  - server
+
 allowBuilds:
   '@scarf/scarf': true
   esbuild: true
