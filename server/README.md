@@ -29,10 +29,11 @@ cd server
 cp .env.example .env
 ```
 
-`.env`의 `DATABASE_URL`을 채웁니다. `DB_POOL_MIN`/`DB_POOL_MAX`는 비워두면 기본값(2/10)입니다.
+`.env`의 `DATABASE_URL`을 채웁니다. `DB_POOL_MIN`/`DB_POOL_MAX`는 비워두면 기본값(2/10)입니다. `PORT`는 백엔드 HTTP 포트이며, 목 서버(3000)와 동시에 실행할 수 있도록 3001입니다.
 
 ```
 DATABASE_URL=postgresql://postgres:<비밀번호>@localhost:5432/mpw_plus
+PORT=3001
 ```
 
 `.env`는 git에 올라가지 않습니다. `knexfile.js`가 시작할 때 이 파일을 읽습니다.
@@ -52,10 +53,40 @@ npx knex seed:run         # master_items 초기 dropdown 20행 (재실행해도 
 psql -U postgres -d mpw_plus -c "SELECT COUNT(*) FROM master_items"   # → 20
 ```
 
+## 6. 서버 실행
+
+`server/` 폴더에서 실행합니다 (저장소 루트에서는 `pnpm --filter server dev`).
+
+```sh
+pnpm dev     # 파일을 고치면 자동 재시작 (node --watch)
+pnpm start   # 일반 실행
+```
+
+확인 (PowerShell에서는 `curl` 대신 `curl.exe`):
+
+```sh
+curl http://localhost:3001/api/health   # → {"status":"ok"}
+```
+
+- 목 서버(`mockup/`, 3000)와 포트가 달라 동시에 실행할 수 있습니다.
+- `node --watch`는 `.env` 변경을 감지하지 않습니다. `.env`를 고쳤다면 서버를 직접 다시 시작하세요.
+
+## 7. 테스트
+
+```sh
+pnpm test                        # 전체 테스트 + 커버리지 (80% 미만이면 실패)
+node --test test/app.test.js     # 파일 하나만
+```
+
+실제 DB는 필요 없습니다. 테스트는 DB 연결 모듈을 가짜로 바꿔서 실행합니다.
+
 ## 자주 쓰는 명령
 
 | 명령                        | 설명                                                 |
 | --------------------------- | ---------------------------------------------------- |
+| `pnpm dev`                  | 개발 서버 실행 (파일 변경 시 자동 재시작)            |
+| `pnpm start`                | 서버 실행                                            |
+| `pnpm test`                 | 테스트 + 커버리지 검사 (80% 미만이면 실패)           |
 | `npx knex migrate:latest`   | 아직 적용 안 된 migration 적용                       |
 | `npx knex migrate:rollback` | 마지막 migration 묶음 되돌리기 (테이블 삭제)         |
 | `npx knex seed:run`         | 초기 데이터 다시 넣기 (기존 `master_items`는 지워짐) |

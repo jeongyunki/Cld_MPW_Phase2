@@ -128,12 +128,12 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: Express 앱을 조립하고(`app.js`/`server.js`), 공통 미들웨어(JSON 파싱, CORS, 요청 로깅)와 표준 에러 응답 포맷(`errorHandler.js`)을 갖춘다.
 
 **완료 조건**
-- [ ] `server/src/app.js`에서 Express 인스턴스 생성, `express.json()`, CORS(프론트 dev 서버 origin 허용), `morgan` 요청 로깅 등록
-- [ ] `server/src/middleware/errorHandler.js`가 모든 미처리 에러를 `{ error: { message } }` 형태로 통일 응답
-- [ ] `server/src/server.js`가 `.env`의 `PORT`로 HTTP 서버 기동
-- [ ] `GET /api/health`가 Knex 연결로 `SELECT 1` 실행 후 200 `{ status: "ok" }`, 실패 시 500 반환
-- [ ] 존재하지 않는 경로 요청 시 404 JSON 반환
-- [ ] **프론트 확인 방법**: `curl http://localhost:<PORT>/api/health` → `{"status":"ok"}`
+- [x] `server/src/app.js`에서 Express 인스턴스 생성, `express.json()`, CORS(프론트 dev 서버 origin 허용), `morgan` 요청 로깅 등록
+- [x] `server/src/middleware/errorHandler.js`가 모든 미처리 에러를 `{ error: { message } }` 형태로 통일 응답
+- [x] `server/src/server.js`가 `.env`의 `PORT`로 HTTP 서버 기동
+- [x] `GET /api/health`가 Knex 연결로 `SELECT 1` 실행 후 200 `{ status: "ok" }`, 실패 시 500 반환
+- [x] 존재하지 않는 경로 요청 시 404 JSON 반환
+- [x] **프론트 확인 방법**: `curl http://localhost:<PORT>/api/health` → `{"status":"ok"}`
 
 **의존성**: DB-1
 

@@ -18,9 +18,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm lint` — `prettier --check . && eslint .`
 - `pnpm format` — `prettier --write .`
 
-테스트 러너는 설정되어 있지 않습니다.
+프론트에는 테스트 러너가 없습니다. 백엔드(`server/`)는 `pnpm --filter server test`(node:test + supertest, DB 연결 모듈은 가짜로 대체, 커버리지 80% 미만이면 실패)이고, 파일 하나만 돌리려면 `cd server && node --test test/app.test.js`입니다.
 
 목 API 서버 (`mockup/`, 별도 스크립트 없음): `cd mockup && node server.js` → `http://localhost:3000/api/*`가 `swagger/swagger.json` 기반 목 응답을, `http://localhost:3000/docs`가 Swagger UI를 제공합니다.
+
+백엔드 서버 (`server/`): `pnpm --filter server dev` (또는 `server/`에서 `pnpm dev` / `pnpm start`) → `http://localhost:3001/api/*`. 포트는 `server/.env`의 `PORT`이며 목 서버와 동시에 실행할 수 있습니다.
 
 ## 개요
 
