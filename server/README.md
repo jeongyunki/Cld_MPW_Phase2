@@ -113,7 +113,24 @@ node -e "console.log(require('bcryptjs').hashSync('비밀번호', 10))"
 psql -U postgres -d mpw_plus -c "INSERT INTO users (name, email, password_hash) VALUES ('홍길동', 'hong@mpw.local', '<위에서 나온 해시>')"
 ```
 
-## 8. 테스트
+## 8. Master 항목 API
+
+임가공 Plan의 dropdown 항목(`status`, `category`, `assembler`, `chipSize`, `pkgType`)을 관리합니다.
+
+- `GET /api/master-items` — 로그인 사용자. `fieldName`별로 묶어서 돌려주며, 항목이 없는 필드도 `[]`로 항상 포함합니다.
+- `POST /api/master-items` — 관리자만. 본문 `{ "fieldName": "chipSize", "itemName": "16인치" }`. `itemName`은 앞뒤 공백을 제거해 저장하고, 같은 필드의 맨 뒤 순번을 자동으로 붙입니다. 같은 필드에 같은 이름(대소문자 구분)이 있으면 409입니다.
+- `DELETE /api/master-items/:id` — 관리자만. 이미 임가공 Plan에서 쓰는 값이어도 삭제되며, 응답의 `affectedImgagongPlanCount`로 영향받는 Plan 행 수를 알려줍니다 (Plan 행의 값은 그대로 남습니다). id가 없거나 uuid 형식이 아니면 404입니다.
+- `fieldName`이 위 5개가 아니거나(예: DB 컬럼명 `chip_size`) `itemName`이 비어 있으면 400, 비로그인은 401, 일반 사용자의 POST/DELETE는 403입니다.
+
+확인 (7절의 `cookies.txt` 재사용):
+
+```sh
+curl.exe -b cookies.txt http://localhost:3001/api/master-items
+curl.exe -b cookies.txt -H "Content-Type: application/json" -d '{"fieldName":"chipSize","itemName":"TEST-ITEM"}' http://localhost:3001/api/master-items
+curl.exe -b cookies.txt -X DELETE http://localhost:3001/api/master-items/<위 응답의 id>
+```
+
+## 9. 테스트
 
 ```sh
 pnpm test                        # 전체 테스트 + 커버리지 (80% 미만이면 실패)
