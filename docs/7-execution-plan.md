@@ -165,11 +165,11 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: Master Page의 dropdown 항목 CRUD(FR-MS-01~03) 구현.
 
 **완료 조건**
-- [ ] `GET /api/master-items`, `POST /api/master-items`, `DELETE /api/master-items/:id`를 routes→controller→service→repository 4단으로 구현
-- [ ] `GET`은 `requireAuth`, `POST`/`DELETE`는 `requireAdmin` 적용
-- [ ] `field_name`이 5개 허용값이 아니거나 `item_name`이 빈 문자열이면 400
-- [ ] FR-MS-03: 삭제 시 해당 값을 사용 중인 `imgagong_plans` 행 개수를 응답에 포함(삭제 자체는 막지 않음)
-- [ ] **프론트 확인 방법**: 로그인 세션으로 `GET /api/master-items` → 필드별 배열 JSON, 관리자 세션으로 `POST` 후 `GET`에 반영 확인
+- [x] `GET /api/master-items`, `POST /api/master-items`, `DELETE /api/master-items/:id`를 routes→controller→service→repository 4단으로 구현
+- [x] `GET`은 `requireAuth`, `POST`/`DELETE`는 `requireAdmin` 적용
+- [x] `field_name`이 5개 허용값이 아니거나 `item_name`이 빈 문자열이면 400
+- [x] FR-MS-03: 삭제 시 해당 값을 사용 중인 `imgagong_plans` 행 개수를 응답에 포함(삭제 자체는 막지 않음)
+- [x] **프론트 확인 방법**: 로그인 세션으로 `GET /api/master-items` → 필드별 배열 JSON, 관리자 세션으로 `POST` 후 `GET`에 반영 확인
 
 **의존성**: DB-2, DB-3, BE-1, BE-2
 

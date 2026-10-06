@@ -644,7 +644,7 @@
             }
           },
           "400": {
-            "description": "fieldName이 허용값이 아니거나 itemName이 빈 문자열",
+            "description": "fieldName이 허용값이 아니거나 itemName이 비어 있음(공백만 포함)",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -664,6 +664,15 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "409": {
+            "description": "같은 fieldName에 같은 itemName(앞뒤 공백 제거 후 정확히 일치)이 이미 있음",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "error": { "message": "같은 필드에 이미 등록된 항목입니다" } }
               }
             }
           }
@@ -703,7 +712,7 @@
             }
           },
           "404": {
-            "description": "존재하지 않는 Master 항목",
+            "description": "존재하지 않는 Master 항목 (uuid 형식이 아닌 id 포함)",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
