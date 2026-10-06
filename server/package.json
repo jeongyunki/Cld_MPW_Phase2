@@ -8,10 +8,14 @@
 		"test": "node --test --experimental-test-coverage --test-coverage-include=\"src/**/*.js\" --test-coverage-exclude=\"src/server.js\" --test-coverage-exclude=\"src/db/**\" --test-coverage-lines=80 --test-coverage-branches=80 --test-coverage-functions=80 \"test/**/*.test.js\""
 	},
 	"dependencies": {
+		"bcryptjs": "^3.0.3",
 		"cors": "^2.8.6",
 		"express": "^5.2.1",
+		"express-session": "^1.19.0",
 		"knex": "^3.3.0",
 		"morgan": "^1.12.1",
+		"passport": "^0.7.0",
+		"passport-local": "^1.0.0",
 		"pg": "^8.23.1"
 	},
 	"devDependencies": {
