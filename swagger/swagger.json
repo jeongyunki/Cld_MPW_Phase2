@@ -3,7 +3,7 @@
   "info": {
     "title": "MPW Plus API",
     "version": "0.1.0",
-    "description": "MPW Plus 2차 개발 백엔드 API (Deliverables / 임가공 Plan / Master Page / 인증)"
+    "description": "MPW Plus 2차 개발 백엔드 API (Deliverables / 임가공 Plan / Master Page / 인증). JSON 필드명은 camelCase이며, DB 컬럼(snake_case)과의 변환은 백엔드 repository 계층에서만 한다 (docs/4 3절)."
   },
   "servers": [
     {
@@ -168,7 +168,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "차수(mpw_round) 또는 공정명(process_name)으로 검색",
+            "description": "차수(mpwRound) 또는 공정명(processName)으로 검색",
             "required": false,
             "schema": { "type": "string" }
           }
@@ -201,10 +201,10 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["mpw_round", "process_name", "file"],
+                "required": ["mpwRound", "processName", "file"],
                 "properties": {
-                  "mpw_round": { "type": "string", "description": "MPW 차수" },
-                  "process_name": { "type": "string", "description": "공정명" },
+                  "mpwRound": { "type": "string", "description": "MPW 차수" },
+                  "processName": { "type": "string", "description": "공정명" },
                   "file": {
                     "type": "string",
                     "format": "binary",
@@ -225,7 +225,7 @@
             }
           },
           "400": {
-            "description": "mpw_round/process_name 미입력 또는 파일 크기(10MB) 초과",
+            "description": "mpwRound/processName 미입력 또는 파일 크기(10MB) 초과",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -331,14 +331,14 @@
           {
             "name": "startMonth",
             "in": "query",
-            "description": "조회 시작 년월 (YYYY-MM), created_at 기준",
+            "description": "조회 시작 년월 (YYYY-MM), createdAt 기준",
             "required": false,
             "schema": { "type": "string", "example": "2026-01" }
           },
           {
             "name": "endMonth",
             "in": "query",
-            "description": "조회 종료 년월 (YYYY-MM), created_at 기준",
+            "description": "조회 종료 년월 (YYYY-MM), createdAt 기준",
             "required": false,
             "schema": { "type": "string", "example": "2026-12" }
           }
@@ -596,10 +596,10 @@
     "/master-items": {
       "get": {
         "tags": ["master-items"],
-        "summary": "전체 Master 항목 조회 (field_name별)",
+        "summary": "전체 Master 항목 조회 (fieldName별)",
         "responses": {
           "200": {
-            "description": "field_name(status/category/assembler/chip_size/pkg_type)별 Master 항목 목록",
+            "description": "fieldName(status/category/assembler/chipSize/pkgType)별 Master 항목 목록",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/MasterItemsGrouped" }
@@ -625,10 +625,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["field_name", "item_name"],
+                "required": ["fieldName", "itemName"],
                 "properties": {
-                  "field_name": { "$ref": "#/components/schemas/MasterFieldName" },
-                  "item_name": { "type": "string" }
+                  "fieldName": { "$ref": "#/components/schemas/MasterFieldName" },
+                  "itemName": { "type": "string" }
                 }
               }
             }
@@ -644,7 +644,7 @@
             }
           },
           "400": {
-            "description": "field_name이 허용값이 아니거나 item_name이 빈 문자열",
+            "description": "fieldName이 허용값이 아니거나 itemName이 빈 문자열",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -770,8 +770,8 @@
           "name": { "type": "string", "nullable": true },
           "email": { "type": "string", "format": "email", "nullable": true },
           "role": { "type": "string", "nullable": true, "description": "예: 'admin'(MPW 관리자) 등" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time", "nullable": true },
           "version": { "type": "integer" }
         }
       },
@@ -779,12 +779,12 @@
         "type": "object",
         "properties": {
           "id": { "type": "string", "format": "uuid" },
-          "mpw_round": { "type": "string", "nullable": true, "description": "MPW 차수" },
-          "process_name": { "type": "string", "nullable": true, "description": "공정명" },
-          "file_path": { "type": "string", "nullable": true, "description": "업로드된 엑셀 파일 경로" },
-          "registered_by": { "type": "string", "format": "uuid", "nullable": true, "description": "등록자 -> users.id" },
-          "created_at": { "type": "string", "format": "date-time", "description": "등록일시" },
-          "updated_at": { "type": "string", "format": "date-time", "nullable": true },
+          "mpwRound": { "type": "string", "nullable": true, "description": "MPW 차수" },
+          "processName": { "type": "string", "nullable": true, "description": "공정명" },
+          "filePath": { "type": "string", "nullable": true, "description": "업로드된 엑셀 파일 경로" },
+          "registeredBy": { "type": "string", "format": "uuid", "nullable": true, "description": "등록자 -> users.id" },
+          "createdAt": { "type": "string", "format": "date-time", "description": "등록일시" },
+          "updatedAt": { "type": "string", "format": "date-time", "nullable": true },
           "version": { "type": "integer" }
         }
       },
@@ -804,39 +804,39 @@
         "type": "object",
         "properties": {
           "id": { "type": "string", "format": "uuid" },
-          "created_at": { "type": "string", "format": "date-time", "description": "생성일시. 기간 필터가 이 값을 기준으로 함" },
+          "createdAt": { "type": "string", "format": "date-time", "description": "생성일시. 기간 필터가 이 값을 기준으로 함" },
           "status": { "type": "string", "nullable": true, "description": "예: 'new'/'checked'/'approved'/'requested'. 신규 행은 항상 'new'" },
           "category": { "type": "string", "description": "구분" },
           "assembler": { "type": "string", "description": "조립처" },
-          "chip_size": { "type": "string", "description": "Chip size" },
+          "chipSize": { "type": "string", "description": "Chip size" },
           "module": { "type": "string", "nullable": true, "description": "Module" },
-          "project_name": { "type": "string", "nullable": true, "description": "과제명" },
-          "gcm_code": { "type": "string", "nullable": true, "description": "GCM Code" },
-          "pkg_type": { "type": "string", "description": "PKG Type" },
+          "projectName": { "type": "string", "nullable": true, "description": "과제명" },
+          "gcmCode": { "type": "string", "nullable": true, "description": "GCM Code" },
+          "pkgType": { "type": "string", "description": "PKG Type" },
           "customer": { "type": "string", "nullable": true, "description": "고객" },
-          "lot_count": { "type": "integer", "nullable": true, "description": "LOT수" },
-          "pkg_qty": { "type": "integer", "nullable": true, "description": "PKG 수량" },
+          "lotCount": { "type": "integer", "nullable": true, "description": "LOT수" },
+          "pkgQty": { "type": "integer", "nullable": true, "description": "PKG 수량" },
           "owner": { "type": "string", "description": "과제 담당자 (등록자 역할 겸임)" },
-          "updated_by": { "type": "string", "format": "uuid", "nullable": true, "description": "수정자 -> users.id" },
-          "updated_at": { "type": "string", "format": "date-time", "nullable": true, "description": "수정일시" },
+          "updatedBy": { "type": "string", "format": "uuid", "nullable": true, "description": "수정자 -> users.id" },
+          "updatedAt": { "type": "string", "format": "date-time", "nullable": true, "description": "수정일시" },
           "version": { "type": "integer", "description": "낙관적 잠금용 버전 번호" }
         },
-        "required": ["id", "created_at", "category", "assembler", "chip_size", "pkg_type", "owner", "version"]
+        "required": ["id", "createdAt", "category", "assembler", "chipSize", "pkgType", "owner", "version"]
       },
       "ImgagongPlanCreate": {
         "type": "object",
-        "required": ["category", "assembler", "chip_size", "pkg_type", "owner"],
+        "required": ["category", "assembler", "chipSize", "pkgType", "owner"],
         "properties": {
           "category": { "type": "string", "description": "구분" },
           "assembler": { "type": "string", "description": "조립처" },
-          "chip_size": { "type": "string", "description": "Chip size" },
+          "chipSize": { "type": "string", "description": "Chip size" },
           "module": { "type": "string", "nullable": true },
-          "project_name": { "type": "string", "nullable": true },
-          "gcm_code": { "type": "string", "nullable": true },
-          "pkg_type": { "type": "string", "description": "PKG Type" },
+          "projectName": { "type": "string", "nullable": true },
+          "gcmCode": { "type": "string", "nullable": true },
+          "pkgType": { "type": "string", "description": "PKG Type" },
           "customer": { "type": "string", "nullable": true },
-          "lot_count": { "type": "integer", "nullable": true },
-          "pkg_qty": { "type": "integer", "nullable": true },
+          "lotCount": { "type": "integer", "nullable": true },
+          "pkgQty": { "type": "integer", "nullable": true },
           "owner": { "type": "string", "description": "과제 담당자" }
         }
       },
@@ -848,14 +848,14 @@
           "status": { "type": "string", "nullable": true },
           "category": { "type": "string", "nullable": true },
           "assembler": { "type": "string", "nullable": true },
-          "chip_size": { "type": "string", "nullable": true },
+          "chipSize": { "type": "string", "nullable": true },
           "module": { "type": "string", "nullable": true },
-          "project_name": { "type": "string", "nullable": true },
-          "gcm_code": { "type": "string", "nullable": true },
-          "pkg_type": { "type": "string", "nullable": true },
+          "projectName": { "type": "string", "nullable": true },
+          "gcmCode": { "type": "string", "nullable": true },
+          "pkgType": { "type": "string", "nullable": true },
           "customer": { "type": "string", "nullable": true },
-          "lot_count": { "type": "integer", "nullable": true },
-          "pkg_qty": { "type": "integer", "nullable": true },
+          "lotCount": { "type": "integer", "nullable": true },
+          "pkgQty": { "type": "integer", "nullable": true },
           "owner": { "type": "string", "nullable": true }
         }
       },
@@ -873,24 +873,24 @@
       },
       "MasterFieldName": {
         "type": "string",
-        "enum": ["status", "category", "assembler", "chip_size", "pkg_type"],
-        "description": "status | category | assembler | chip_size | pkg_type"
+        "enum": ["status", "category", "assembler", "chipSize", "pkgType"],
+        "description": "status | category | assembler | chipSize | pkgType"
       },
       "MasterItem": {
         "type": "object",
         "properties": {
           "id": { "type": "string", "format": "uuid" },
-          "field_name": { "$ref": "#/components/schemas/MasterFieldName" },
-          "item_name": { "type": "string", "description": "항목명" },
-          "sort_order": { "type": "integer", "nullable": true, "description": "표시 순서" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time", "nullable": true },
+          "fieldName": { "$ref": "#/components/schemas/MasterFieldName" },
+          "itemName": { "type": "string", "description": "항목명" },
+          "sortOrder": { "type": "integer", "nullable": true, "description": "표시 순서" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time", "nullable": true },
           "version": { "type": "integer" }
         }
       },
       "MasterItemsGrouped": {
         "type": "object",
-        "description": "field_name을 key로 하는 Master 항목 그룹",
+        "description": "fieldName을 key로 하는 Master 항목 그룹",
         "properties": {
           "status": {
             "type": "array",
@@ -904,11 +904,11 @@
             "type": "array",
             "items": { "$ref": "#/components/schemas/MasterItem" }
           },
-          "chip_size": {
+          "chipSize": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/MasterItem" }
           },
-          "pkg_type": {
+          "pkgType": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/MasterItem" }
           }

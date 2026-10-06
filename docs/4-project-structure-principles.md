@@ -81,6 +81,7 @@ routes (요청 매핑)  →  controllers (요청/응답 처리)  →  services (
 | JS 변수/함수명 (프론트/백엔드 공통) | camelCase | `addRow`, `fetchImgagongRows` | 기존 코드와 동일 |
 | 백엔드 계층별 파일명 | kebab-case + 계층 접미사 | `imgagong-plans.routes.js`, `imgagong-plans.service.js` | 파일명만 보고 계층을 알 수 있게 함. Express 생태계에서 흔한 관례 |
 | REST 엔드포인트(리소스 경로) | 복수형 명사, kebab-case | `/api/imgagong-plans`, `/api/master-items` | PRD 3.5절에 이미 정의된 경로를 그대로 따름 |
+| API JSON 필드명(요청/응답 body, 쿼리) | camelCase | `chipSize`, `createdAt`, `fieldName` | JS/Node REST API에서 가장 일반적인 관례. 프론트 코드가 변환 없이 그대로 사용. `swagger/swagger.json`도 이 기준(이슈 #7 결정) |
 | PostgreSQL 테이블명 | snake_case, 복수형 | `imgagong_plans`, `master_items`, `deliverables` | PostgreSQL/SQL 관례. API 리소스명(kebab-case)과 1:1 대응되도록 함(`-` → `_`) |
 | PostgreSQL 컬럼명 | snake_case | `chip_size`, `created_at`, `pkg_qty` | JS의 camelCase(`chipSize`)와는 계층 경계(DB 접근 모듈)에서만 변환 |
 | 공통 컬럼 | `id`(PK), `created_at`, `updated_at`, `version`(낙관적 잠금용) | - | PRD 4.2절 낙관적 잠금, 시나리오 문서의 "수정일시/수정자" 요구를 일관되게 반영 |
