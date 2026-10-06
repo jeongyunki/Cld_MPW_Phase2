@@ -198,7 +198,13 @@ server/
 │   ├── db/
 │   │   ├── connection.js        # Knex 인스턴스 생성
 │   │   ├── migrations/          # Knex 마이그레이션 (테이블 스키마, ERD 단계에서 채워짐)
-│   │   └── seeds/               # 초기 데이터 (예: master_items 초기값)
+│   │   └── seeds/               # 초기 데이터 (master_items 초기값, 관리자 계정)
+│   │
+│   ├── auth/                    # 로그인/로그아웃/내 정보 (passport 설정은 middleware/auth.js)
+│   │   ├── auth.routes.js
+│   │   ├── auth.controller.js
+│   │   ├── auth.service.js      # bcryptjs 비밀번호 비교
+│   │   └── auth.repository.js   # users 조회
 │   │
 │   ├── deliverables/            # 리소스(도메인) 단위로 라우트/컨트롤러/서비스를 묶음
 │   │   ├── deliverables.routes.js

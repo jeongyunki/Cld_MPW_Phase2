@@ -146,13 +146,13 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: 이메일+비밀번호 기반 세션 로그인을 구현하고, `requireAuth`/`requireAdmin` 미들웨어를 `middleware/auth.js` 한 곳에 격리해 이후 리소스 Task들이 재사용하도록 한다.
 
 **완료 조건**
-- [ ] `passport`, `passport-local`, `express-session`, `bcrypt` 설치 및 설정
-- [ ] `middleware/auth.js`에 Local Strategy 구현: `users.email` + `password_hash`(bcrypt) 검증
-- [ ] `express-session` 등록, 세션 타임아웃 30분(PRD 4.4절)
-- [ ] `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` 라우트 구현
-- [ ] `requireAuth`, `requireAdmin` 미들웨어를 `auth.js`에서 export
-- [ ] 회원가입 화면은 만들지 않고, 관리자 계정 1개를 seed 스크립트로 생성
-- [ ] **프론트 확인 방법**: 올바른 자격증명으로 `POST /api/auth/login` → 200 + 세션 쿠키, 그 쿠키로 `GET /api/auth/me` → 사용자 정보. 틀린 비번은 401.
+- [x] `passport`, `passport-local`, `express-session`, `bcryptjs` 설치 및 설정
+- [x] `middleware/auth.js`에 Local Strategy 구현: `users.email` + `password_hash`(bcryptjs) 검증
+- [x] `express-session` 등록, 세션 타임아웃 30분(PRD 4.4절)
+- [x] `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` 라우트 구현
+- [x] `requireAuth`, `requireAdmin` 미들웨어를 `auth.js`에서 export
+- [x] 회원가입 화면은 만들지 않고, 관리자 계정 1개를 seed 스크립트로 생성
+- [x] **프론트 확인 방법**: 올바른 자격증명으로 `POST /api/auth/login` → 200 + 세션 쿠키, 그 쿠키로 `GET /api/auth/me` → 사용자 정보. 틀린 비번은 401.
 
 **의존성**: DB-2, BE-1
 

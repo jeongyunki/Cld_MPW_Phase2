@@ -29,12 +29,24 @@ cd server
 cp .env.example .env
 ```
 
-`.env`의 `DATABASE_URL`을 채웁니다. `DB_POOL_MIN`/`DB_POOL_MAX`는 비워두면 기본값(2/10)입니다. `PORT`는 백엔드 HTTP 포트이며, 목 서버(3000)와 동시에 실행할 수 있도록 3001입니다.
+`.env`의 `DATABASE_URL`, `SESSION_SECRET`, `ADMIN_*`를 채웁니다. `DB_POOL_MIN`/`DB_POOL_MAX`는 비워두면 기본값(2/10)입니다. `PORT`는 백엔드 HTTP 포트이며, 목 서버(3000)와 동시에 실행할 수 있도록 3001입니다.
 
 ```
 DATABASE_URL=postgresql://postgres:<비밀번호>@localhost:5432/mpw_plus
 PORT=3001
+SESSION_SECRET=<아래 명령으로 생성한 값>
+ADMIN_EMAIL=admin@mpw.local
+ADMIN_PASSWORD=<관리자 비밀번호>
+ADMIN_NAME=관리자
 ```
+
+`SESSION_SECRET`은 세션 쿠키 서명용 비밀값이며 필수입니다 (비어 있으면 모든 API 요청이 500). 생성:
+
+```sh
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+`ADMIN_*`는 5절의 관리자 seed가 사용합니다.
 
 `.env`는 git에 올라가지 않습니다. `knexfile.js`가 시작할 때 이 파일을 읽습니다.
 
@@ -44,13 +56,20 @@ PORT=3001
 
 ```sh
 npx knex migrate:latest   # 테이블 4개 생성 (users, deliverables, imgagong_plans, master_items)
-npx knex seed:run         # master_items 초기 dropdown 20행 (재실행해도 중복 없음)
+npx knex seed:run         # master_items 초기 dropdown 20행 + 관리자 계정 1명 (재실행해도 중복 없음)
+```
+
+관리자 seed는 `.env`의 `ADMIN_*` 값으로 계정을 만들고, 재실행하면 `.env`의 현재 값으로 갱신합니다. 관리자만 다시 넣으려면:
+
+```sh
+npx knex seed:run --specific=02_admin_user.js
 ```
 
 확인:
 
 ```sh
 psql -U postgres -d mpw_plus -c "SELECT COUNT(*) FROM master_items"   # → 20
+psql -U postgres -d mpw_plus -c "SELECT email, role FROM users"          # → admin@mpw.local | admin
 ```
 
 ## 6. 서버 실행
@@ -71,7 +90,30 @@ curl http://localhost:3001/api/health   # → {"status":"ok"}
 - 목 서버(`mockup/`, 3000)와 포트가 달라 동시에 실행할 수 있습니다.
 - `node --watch`는 `.env` 변경을 감지하지 않습니다. `.env`를 고쳤다면 서버를 직접 다시 시작하세요.
 
-## 7. 테스트
+## 7. 인증(세션)
+
+- 로그인하면 서버가 세션을 만들고 쿠키 `connect.sid`(HttpOnly, SameSite=Lax)를 발급합니다.
+- 마지막 요청 후 30분간 요청이 없으면 만료됩니다 (요청할 때마다 연장). remember-me는 없습니다.
+- 세션은 서버 메모리(MemoryStore)에 있어 서버를 재시작하면 모두 로그아웃됩니다.
+- 프론트는 `fetch`에 `credentials: 'include'`를 써야 쿠키가 전달됩니다.
+- `SESSION_SECRET`이 없으면 모든 API 요청이 500입니다.
+
+확인 (쿠키를 `cookies.txt`에 저장해 재사용):
+
+```sh
+curl.exe -c cookies.txt -H "Content-Type: application/json" -d '{"email":"admin@mpw.local","password":"<비밀번호>"}' http://localhost:3001/api/auth/login
+curl.exe -b cookies.txt http://localhost:3001/api/auth/me
+curl.exe -b cookies.txt -X POST http://localhost:3001/api/auth/logout
+```
+
+일반 사용자는 화면/API가 없어 직접 등록합니다. `server/`에서 해시를 만들고 psql로 INSERT합니다. `role`이 NULL이면 일반 사용자, `'admin'`이면 관리자입니다.
+
+```sh
+node -e "console.log(require('bcryptjs').hashSync('비밀번호', 10))"
+psql -U postgres -d mpw_plus -c "INSERT INTO users (name, email, password_hash) VALUES ('홍길동', 'hong@mpw.local', '<위에서 나온 해시>')"
+```
+
+## 8. 테스트
 
 ```sh
 pnpm test                        # 전체 테스트 + 커버리지 (80% 미만이면 실패)
@@ -82,11 +124,12 @@ node --test test/app.test.js     # 파일 하나만
 
 ## 자주 쓰는 명령
 
-| 명령                        | 설명                                                 |
-| --------------------------- | ---------------------------------------------------- |
-| `pnpm dev`                  | 개발 서버 실행 (파일 변경 시 자동 재시작)            |
-| `pnpm start`                | 서버 실행                                            |
-| `pnpm test`                 | 테스트 + 커버리지 검사 (80% 미만이면 실패)           |
-| `npx knex migrate:latest`   | 아직 적용 안 된 migration 적용                       |
-| `npx knex migrate:rollback` | 마지막 migration 묶음 되돌리기 (테이블 삭제)         |
-| `npx knex seed:run`         | 초기 데이터 다시 넣기 (기존 `master_items`는 지워짐) |
+| 명령                                            | 설명                                                                                   |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm dev`                                      | 개발 서버 실행 (파일 변경 시 자동 재시작)                                              |
+| `pnpm start`                                    | 서버 실행                                                                              |
+| `pnpm test`                                     | 테스트 + 커버리지 검사 (80% 미만이면 실패)                                             |
+| `npx knex migrate:latest`                       | 아직 적용 안 된 migration 적용                                                         |
+| `npx knex migrate:rollback`                     | 마지막 migration 묶음 되돌리기 (테이블 삭제)                                           |
+| `npx knex seed:run`                             | 초기 데이터 다시 넣기 (`master_items`는 지우고 다시 넣고, 관리자는 `.env` 값으로 갱신) |
+| `npx knex seed:run --specific=02_admin_user.js` | 관리자 계정만 `.env` 값으로 만들기/갱신                                                |

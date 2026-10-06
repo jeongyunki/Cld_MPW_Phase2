@@ -23,6 +23,8 @@ require.cache[connectionPath] = {
 	loaded: true,
 	exports: fakeDb
 };
+// express-session은 secret이 없으면 모든 요청에서 500을 내므로, app을 require하기 전에 설정한다.
+process.env.SESSION_SECRET = 'test-secret';
 const app = require('../src/app');
 
 const NOT_FOUND_BODY = { error: { message: '요청한 경로를 찾을 수 없습니다' } };
