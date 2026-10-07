@@ -152,7 +152,27 @@ curl.exe -b cookies.txt -OJ http://localhost:3001/api/deliverables/<위 응답�
 curl.exe -b cookies.txt -X DELETE http://localhost:3001/api/deliverables/<위 응답의 id>
 ```
 
-## 10. 테스트
+## 10. 임가공 Plan API
+
+임가공 Plan 행을 조회/추가/수정/삭제합니다. 모든 엔드포인트는 로그인 사용자용입니다.
+
+- `GET /api/imgagong-plans?page=1&limit=20&startMonth=2026-01&endMonth=2026-12` — 생성일시(`createdAt`) 최신순 목록 `{ data, total, page, limit }`. `startMonth`는 해당 월 1일 0시 이상, `endMonth`는 종료월 다음 달 1일 0시 미만(종료월 포함)이며, 생략한 쪽은 경계가 없습니다. 시작 > 종료이면 빈 결과입니다. `page`/`limit`이 1 이상의 정수가 아니거나 `startMonth`/`endMonth`가 `YYYY-MM` 형식이 아니면 400입니다.
+- `POST /api/imgagong-plans` — 필수 `category`, `assembler`, `chipSize`, `pkgType`, `owner`(앞뒤 공백 제거, 비면 400), 선택 `module`, `projectName`, `gcmCode`, `customer`, `lotCount`, `pkgQty`. `status`는 body에 보내도 무시되고 항상 `'new'`로 저장되며 `version`은 1에서 시작합니다. 성공하면 201입니다.
+- `PATCH /api/imgagong-plans/:id` — body에 `version`(화면에서 본 버전)이 필수이고, 바꿀 필드만 함께 보냅니다(목록에 없는 키는 무시, 수정할 필드가 없으면 400). `status`는 관리자만 바꿀 수 있어 일반 사용자가 `status` 키를 보내면(값과 무관) 403입니다. 성공하면 `version`이 1 올라간 행을 돌려줍니다.
+- `DELETE /api/imgagong-plans/:id` — 행의 `owner`(과제 담당자)가 로그인 사용자 이름과 같거나(앞뒤 공백 무시) 관리자일 때만 삭제됩니다. 사용자 이름이 비어 있으면 관리자만 가능하고, 아니면 403입니다. `owner`는 이름 문자열이라 오타·동명이인이 있을 수 있고, `owner`를 수정해 삭제 권한을 얻을 수도 있습니다.
+- id가 없거나 uuid 형식이 아니면 404, 비로그인은 401입니다.
+- 낙관적 잠금: 다른 사용자가 먼저 같은 행을 저장해 `version`이 올라가 있으면 PATCH는 409(`다른 사용자가 먼저 이 행을 수정했습니다. 페이지를 새로고침한 후 다시 시도하세요`)입니다. 새로고침해서 최신 `version`을 받은 뒤 다시 시도하세요.
+
+확인 (7절의 `cookies.txt` 재사용):
+
+```sh
+curl.exe -b cookies.txt -H "Content-Type: application/json" -d '{"category":"산학","assembler":"A사","chipSize":"8인치","pkgType":"QFN","owner":"홍길동"}' http://localhost:3001/api/imgagong-plans
+curl.exe -b cookies.txt "http://localhost:3001/api/imgagong-plans?startMonth=2026-01&endMonth=2026-12"
+curl.exe -b cookies.txt -X PATCH -H "Content-Type: application/json" -d '{"version":1,"module":"M1"}' http://localhost:3001/api/imgagong-plans/<위 응답의 id>
+curl.exe -b cookies.txt -X DELETE http://localhost:3001/api/imgagong-plans/<위 응답의 id>
+```
+
+## 11. 테스트
 
 ```sh
 pnpm test                        # 전체 테스트 + 커버리지 (80% 미만이면 실패)

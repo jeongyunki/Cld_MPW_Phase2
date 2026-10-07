@@ -11,5 +11,6 @@ router.get('/health', getHealth);
 router.use('/auth', require('./auth/auth.routes'));
 router.use('/master-items', require('./master-items/master-items.routes'));
 router.use('/deliverables', require('./deliverables/deliverables.routes'));
+router.use('/imgagong-plans', require('./imgagong-plans/imgagong-plans.routes'));
 
 module.exports = router;
