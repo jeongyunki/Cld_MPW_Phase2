@@ -27,6 +27,7 @@
   - base URL은 `.env`의 `VITE_API_BASE_URL`(로컬 백엔드 `http://localhost:3001/api`).
   - 세션 쿠키 인증이므로 `fetch`에 `credentials: 'include'`.
   - 요청·응답 필드는 camelCase(`chipSize`, `createdAt` 등) — 프론트에서 변환하지 않는다.
+  - 모든 요청은 `src/lib/api/client.js`의 `request(path, { method, query, body })`를 거친다. 4xx/5xx는 `err.status`와 서버 메시지(`err.message`)가 담긴 Error로 던져지고, 네트워크 실패는 원래 TypeError 그대로 전파된다. client는 콘솔에 찍지 않는다(처리·표시는 스토어 책임).
   - 에러 응답은 `{ error: { message } }`. 4xx/5xx는 에러로 던지고 조용히 삼키지 않는다. 401은 로그인 화면으로 보낸다.
 - `src/lib/parseModuleData.js`는 Svelte에 의존하지 않는 순수 함수로 유지한다.
 - 기존 파일 일부는 2칸 들여쓰기·큰따옴표다. 재포맷은 수정하는 파일에만 한다.
@@ -36,4 +37,4 @@
 
 - `pnpm dev` — Vite 개발 서버(`http://localhost:5173`)
 - `pnpm check` — 타입 검사, `pnpm lint` — prettier + eslint
-- 프론트에는 아직 테스트 러너가 없다. 순수 함수 테스트가 필요해지면 그때 도입한다(`docs/4` 4절).
+- `pnpm test` — Vitest(`src/lib/**/*.test.js`, 커버리지 80% 미만이면 실패). 대상은 Svelte 비의존 모듈(`src/lib/api` 등)이고, `fetch`는 `vi.stubGlobal`로 가짜로 대체한다. UI/E2E 테스트는 만들지 않는다(`docs/4` 4절).

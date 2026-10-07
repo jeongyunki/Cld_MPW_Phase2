@@ -34,3 +34,6 @@ desktop.ini
 
 # 업로드 파일 (server/src/lib/upload.js 저장소)
 server/uploads/
+
+# Test coverage
+/coverage

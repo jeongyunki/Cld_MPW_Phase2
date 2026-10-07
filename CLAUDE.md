@@ -18,8 +18,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm check:watch` — 위 타입 검사를 watch 모드로 실행
 - `pnpm lint` — `prettier --check . && eslint .`
 - `pnpm format` — `prettier --write .`
+- `pnpm test` — Vitest (프론트 `src/lib`의 Svelte 비의존 모듈, 커버리지 80% 미만이면 실패)
 
-프론트에는 테스트 러너가 없습니다. 백엔드(`server/`)는 `pnpm --filter server test`(node:test + supertest, DB 연결 모듈은 가짜로 대체, 커버리지 80% 미만이면 실패)이고, 파일 하나만 돌리려면 `cd server && node --test test/app.test.js`입니다.
+프론트 테스트는 `pnpm test`(Vitest, `vite.config.ts`의 `test` 블록 공유, `fetch`는 `vi.stubGlobal`로 가짜로 대체, 현재 대상 `src/lib/api`)이고, 파일 하나만 돌리려면 `pnpm vitest run src/lib/api/client.test.js`입니다. 백엔드(`server/`)는 `pnpm --filter server test`(node:test + supertest, DB 연결 모듈은 가짜로 대체, 커버리지 80% 미만이면 실패)이고, 파일 하나만 돌리려면 `cd server && node --test test/app.test.js`입니다.
 
 목 API 서버 (`mockup/`, 별도 스크립트 없음): `cd mockup && node server.js` → `http://localhost:3000/api/*`가 `swagger/swagger.json` 기반 목 응답을, `http://localhost:3000/docs`가 Swagger UI를 제공합니다.
 
