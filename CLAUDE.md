@@ -44,6 +44,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `/imgagong` 임가공 Plan — 계획 행 테이블 (추가 팝업, 기간 필터, 삭제)
 - `/master` Master Page — 임가공 Plan에서 쓰는 dropdown 항목을 추가/삭제
 
+`/login`(로그인 화면, FE-2)은 예외로 `menuItems`에 넣지 않는다. 사이드바·테마 토글 없이 전체 화면으로 그려지고, `+layout.svelte`가 앱 시작 시 `GET /api/auth/me`로 세션을 1회 확인해 비로그인이면 `/login?redirectTo=<원래 경로>`로 보낸다.
+
 ## 프론트엔드 아키텍처 (현재 코드)
 
 **공유 상태는 컴포넌트가 아니라 `src/lib/*.svelte.js` 모듈에 둡니다.** `.svelte.js` 확장자 덕분에 컴포넌트 밖에서도 `$state`를 쓸 수 있습니다. 모듈 수준 상태는 페이지 이동 후에도 유지됩니다 (SvelteKit은 이동 시 페이지 컴포넌트를 새로 만들기 때문에, 컴포넌트 내부의 `$state`는 초기화됨).
@@ -51,6 +53,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `masterStore.svelte.js` — `masterData`(dropdown 항목 목록) + `MASTER_FIELDS` 메타데이터. Master Page가 쓰고, 임가공 Plan이 읽는다. 단, `status` 목록은 Master Page에서 편집할 수 있지만 `addRow`는 status를 항상 `'new'`로 고정하므로 새 행에는 반영되지 않는다.
 - `imgagongStore.svelte.js` — `imgagongRows`와 `addRow` / `deleteSelectedRows`. `addRow`가 `date`(생성 시각, `YYYY-MM-DD HH:MM`)와 `status: 'new'`를 직접 채운다. 페이지의 기간 필터는 `date.slice(0, 7)`을 문자열로 비교한다. 행의 `_selected`는 UI 전용 체크박스 상태다.
 - `theme.svelte.js` — 다크/라이트 모드. `+layout.svelte`가 `<html>`에 `light` class를 붙였다 뗀다. 두 팔레트는 레이아웃의 `<style>`에 CSS 변수(`--bg-page` 등)로 정의되어 있다. 테마가 동작하려면 페이지에서 색을 하드코딩하지 말고 `var(--xxx)`를 써야 한다.
+- `authStore.svelte.js` — `auth`(`{ user, checked }`)와 `checkSession` / `login` / `logout` / `clearUser` / `isAdmin`. 화면 이동(`goto`)은 하지 않고, `+layout.svelte`의 가드가 `auth.user`를 보고 `/login`이나 redirectTo로 보낸다. `user.role`로 권한 UI를 분기한다(`isAdmin()`).
 
 이 스토어들이 서버 연동의 유일한 접점입니다 (스토어 내부를 `src/lib/api/*.js` 호출로 교체하고, 페이지 코드는 그대로 두는 방식 — 자세한 규칙은 `src/CLAUDE.md`).
 
