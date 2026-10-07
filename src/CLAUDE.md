@@ -29,7 +29,7 @@
   - 요청·응답 필드는 camelCase(`chipSize`, `createdAt` 등) — 프론트에서 변환하지 않는다.
   - 모든 요청은 `src/lib/api/client.js`의 `request(path, { method, query, body })`를 거친다. 4xx/5xx는 `err.status`와 서버 메시지(`err.message`)가 담긴 Error로 던져지고, 네트워크 실패는 원래 TypeError 그대로 전파된다. client는 콘솔에 찍지 않는다(처리·표시는 스토어 책임).
   - 에러 응답은 `{ error: { message } }`. 4xx/5xx는 에러로 던지고 조용히 삼키지 않는다. 401은 각 스토어의 catch에서 `err.status === 401`이면 `authStore`의 `clearUser()`를 호출한다 — 레이아웃이 `auth.user === null`을 보고 `/login?redirectTo=현재경로`로 보낸다. 스토어는 `goto`를 쓰지 않는다.
-- `src/lib/parseModuleData.js`는 Svelte에 의존하지 않는 순수 함수로 유지한다.
+- `src/lib/parseModuleData.js`, `src/lib/imgagongRow.js`는 Svelte에 의존하지 않는 순수 함수로 유지한다.
 - 기존 파일 일부는 2칸 들여쓰기·큰따옴표다. 재포맷은 수정하는 파일에만 한다.
 - 주석은 한국어 학습용 설명 스타일(Svelte를 React와 비교 등).
 
