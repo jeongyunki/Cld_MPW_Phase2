@@ -19,6 +19,7 @@
 // - 케이스마다 새 agent를 만들어 서로의 로그인 상태가 섞이지 않게 한다.
 
 const { test, beforeEach } = require('node:test');
+const http = require('node:http');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
@@ -107,6 +108,7 @@ const state = {
 	wheres: [],
 	lastUpdate: null,
 	lastInsert: null,
+	lastBulk: null,
 	seq: 0
 };
 
@@ -134,7 +136,7 @@ const check = () => {
 };
 
 const plansBuilder = () => {
-	const q = { cond: null, range: [], limit: null };
+	const q = { cond: null, inIds: null, range: [], limit: null };
 	const inRange = (r) =>
 		q.range.every(([op, value]) => (op === '>=' ? r.created_at >= value : r.created_at < value));
 	const builder = {
@@ -150,6 +152,13 @@ const plansBuilder = () => {
 			assert.ok(op === '>=' || op === '<', `예상하지 못한 연산자: ${op}`);
 			q.range.push([op, value]);
 			state.wheres.push([col, op, value]);
+			return builder;
+		},
+		// 일괄 의뢰확정: whereIn('id', ids) — 첫 인자는 'id', 두 번째는 배열로 고정
+		whereIn: (col, values) => {
+			assert.equal(col, 'id');
+			assert.ok(Array.isArray(values));
+			q.inIds = values;
 			return builder;
 		},
 		orderBy: (cols) => {
@@ -214,6 +223,27 @@ const plansBuilder = () => {
 			returning: async (cols = '*') => {
 				check();
 				assert.equal(cols, '*');
+				if (q.inIds) {
+					// bulk update: whereIn('id', ids).where({ status }).update(4개 키).returning('*')
+					assert.deepEqual(Object.keys(q.cond), ['status']);
+					assert.deepEqual(Object.keys(data).sort(), [
+						'status',
+						'updated_at',
+						'updated_by',
+						'version'
+					]);
+					assert.deepEqual(data.version, RAW_VERSION);
+					assert.deepEqual(data.updated_at, NOW);
+					state.lastBulk = { ids: q.inIds, cond: q.cond, data };
+					const rows = state.plans.filter((r) => q.inIds.includes(r.id) && match(q.cond)(r));
+					for (const row of rows) {
+						row.status = data.status;
+						row.version += 1;
+						row.updated_at = new Date().toISOString();
+						row.updated_by = data.updated_by;
+					}
+					return rows.map((r) => ({ ...r }));
+				}
 				assert.deepEqual(Object.keys(q.cond).sort(), ['id', 'version']);
 				assert.deepEqual(data.version, RAW_VERSION);
 				assert.deepEqual(data.updated_at, NOW);
@@ -258,6 +288,7 @@ require.cache[connectionPath] = {
 };
 const app = require('../src/app');
 // 서비스·repository가 쓰는 것과 같은 인스턴스. 순수 함수 테스트와 t.mock.method에 쓴다.
+const sse = require('../src/lib/sse');
 const imgagongPlansService = require('../src/imgagong-plans/imgagong-plans.service');
 const imgagongPlansRepository = require('../src/imgagong-plans/imgagong-plans.repository');
 
@@ -268,6 +299,7 @@ beforeEach(() => {
 	state.wheres = [];
 	state.lastUpdate = null;
 	state.lastInsert = null;
+	state.lastBulk = null;
 	state.seq = 0;
 });
 
@@ -848,4 +880,315 @@ test('V2: nextMonthStart — 다음 달 1일, 12월은 다음 해 1월', () => {
 	assert.equal(imgagongPlansService.nextMonthStart('2026-01'), '2026-02-01');
 	assert.equal(imgagongPlansService.nextMonthStart('2026-09'), '2026-10-01');
 	assert.equal(imgagongPlansService.nextMonthStart('2026-12'), '2027-01-01');
+});
+
+// ---------- SSE 이벤트 발행 (broadcast) ----------
+// 업무 이벤트는 service가 "성공한 뒤에만" 발행한다. 실패(400/403/404/409/500)에는 한 번도 부르지 않는다.
+// 여기서는 sse.broadcast를 빈 함수로 바꿔 끼우고, 호출 횟수와 인자만 확인한다.
+
+const IDS_BODY = bodyOf('ids는 uuid 형식의 id를 1개 이상 담은 배열이어야 합니다');
+const ADMIN_ONLY_BODY = bodyOf('관리자 권한이 필요합니다');
+const BULK = '/api/imgagong-plans/bulk-confirm';
+const setStatus = (plan, status) => {
+	dbRow(plan.id).status = status;
+};
+
+test('E1: POST 성공은 created 발행(인자 = 응답 body), 400·500은 발행 없음', async (t) => {
+	t.mock.method(console, 'error', () => {});
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	const agent = await loggedIn(USER_ROW.email);
+
+	const res = await agent.post('/api/imgagong-plans').send(VALID_BODY);
+	assert.equal(res.status, 201);
+	assert.equal(broadcast.mock.callCount(), 1);
+	assert.deepEqual(broadcast.mock.calls[0].arguments, ['created', res.body]);
+
+	const bad = await agent.post('/api/imgagong-plans').send({ ...VALID_BODY, category: '  ' });
+	assert.equal(bad.status, 400);
+	state.error = new Error('db down');
+	const fail = await agent.post('/api/imgagong-plans').send(VALID_BODY);
+	assert.equal(fail.status, 500);
+	assert.equal(broadcast.mock.callCount(), 1);
+});
+
+test('E2: PATCH 성공은 updated 발행(인자 = 응답 body), 409·404·403·400은 발행 없음', async (t) => {
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	const agent = await loggedIn(USER_ROW.email);
+
+	const res = await agent.patch(url(P1.id)).send({ version: 1, module: 'M' });
+	assert.equal(res.status, 200);
+	assert.equal(broadcast.mock.callCount(), 1);
+	assert.deepEqual(broadcast.mock.calls[0].arguments, ['updated', res.body]);
+
+	const conflict = await agent.patch(url(P2.id)).send({ version: 1, module: 'X' });
+	assert.equal(conflict.status, 409);
+	const notFound = await agent.patch(url(NONEXISTENT_ID)).send({ version: 1, module: 'X' });
+	assert.equal(notFound.status, 404);
+	const forbidden = await agent.patch(url(P3.id)).send({ version: 1, status: 'checked' });
+	assert.equal(forbidden.status, 403);
+	const bad = await agent.patch(url(P3.id)).send({ module: 'X' });
+	assert.equal(bad.status, 400);
+	assert.equal(broadcast.mock.callCount(), 1);
+});
+
+test('E3: DELETE 성공은 deleted 발행({ id }), 403·404는 발행 없음', async (t) => {
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	const agent = await loggedIn(USER_ROW.email);
+
+	const res = await agent.delete(url(P1.id));
+	assert.equal(res.status, 200);
+	assert.equal(broadcast.mock.callCount(), 1);
+	assert.deepEqual(broadcast.mock.calls[0].arguments, ['deleted', { id: P1.id }]);
+
+	const forbidden = await agent.delete(url(P3.id));
+	assert.equal(forbidden.status, 403);
+	const notFound = await agent.delete(url(NONEXISTENT_ID));
+	assert.equal(notFound.status, 404);
+	assert.equal(broadcast.mock.callCount(), 1);
+});
+
+// ---------- 일괄 의뢰확정 (PATCH /bulk-confirm) ----------
+// 상태 흐름: new -> checked -> requested(의뢰 확정) -> approved(결재 완료)
+// 'checked' 행만 'requested'로 바뀌고, 나머지(없는 id 포함)는 건너뛴다(부분 성공).
+
+test('K1: 관리자 일괄 확정 — checked인 P1·P2만 requested, 나머지는 불변, broadcast 1회', async (t) => {
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	setStatus(P1, 'checked');
+	setStatus(P2, 'checked');
+	setStatus(P3, 'approved');
+	setStatus(P4, 'requested');
+	setStatus(P5, 'new');
+	const [p3, p4, p5] = [P3, P4, P5].map((plan) => ({ ...dbRow(plan.id) }));
+	const ids = [P1.id, P2.id, P3.id, P4.id, P5.id, NONEXISTENT_ID];
+
+	const agent = await loggedIn();
+	const res = await agent.patch(BULK).send({ ids });
+	assert.equal(res.status, 200);
+	assert.deepEqual(Object.keys(res.body), ['data']);
+	assert.deepEqual(idsOf(res).sort(), [P1.id, P2.id].sort());
+	for (const plan of res.body.data) {
+		assert.deepEqual(Object.keys(plan).sort(), PLAN_KEYS, plan.id);
+		assert.equal(plan.status, 'requested');
+		assert.equal(plan.updatedBy, ADMIN_ROW.id);
+		assert.equal(typeof plan.updatedAt, 'string');
+	}
+	const byId = Object.fromEntries(res.body.data.map((d) => [d.id, d]));
+	assert.equal(byId[P1.id].version, 2);
+	assert.equal(byId[P2.id].version, 4);
+
+	assert.deepEqual(dbRow(P3.id), p3);
+	assert.deepEqual(dbRow(P4.id), p4);
+	assert.deepEqual(dbRow(P5.id), p5);
+
+	assert.deepEqual(state.lastBulk.ids, ids);
+	assert.deepEqual(state.lastBulk.cond, { status: 'checked' });
+	assert.equal(state.lastBulk.data.status, 'requested');
+	assert.equal(state.lastBulk.data.updated_by, ADMIN_ROW.id);
+
+	assert.equal(broadcast.mock.callCount(), 1);
+	assert.deepEqual(broadcast.mock.calls[0].arguments, ['bulk-confirmed', res.body.data]);
+
+	const text = JSON.stringify(res.body);
+	for (const key of SNAKE_KEYS) {
+		assert.ok(!text.includes(key), `snake_case 키가 응답에 있음: ${key}`);
+	}
+});
+
+test('K2: 모두 new(checked 없음) — 200 {data: []}, broadcast 없음, DB 불변', async (t) => {
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	const snapshot = JSON.stringify(state.plans);
+	const agent = await loggedIn();
+	const res = await agent.patch(BULK).send({ ids: [P1.id, P2.id, P3.id] });
+	assert.equal(res.status, 200);
+	assert.deepEqual(res.body, { data: [] });
+	assert.equal(broadcast.mock.callCount(), 0);
+	assert.equal(JSON.stringify(state.plans), snapshot);
+});
+
+test('K3: 없는 id만 — 200 {data: []}', async (t) => {
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	const agent = await loggedIn();
+	const res = await agent.patch(BULK).send({ ids: [NONEXISTENT_ID] });
+	assert.equal(res.status, 200);
+	assert.deepEqual(res.body, { data: [] });
+	assert.equal(broadcast.mock.callCount(), 0);
+});
+
+test('K4: 잘못된 ids(없음·null·문자열·객체·숫자·빈 배열·uuid 아님·섞임) — 400, DB·broadcast 호출 없음', async (t) => {
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	const agent = await loggedIn();
+	const bodies = [
+		undefined,
+		{},
+		{ ids: null },
+		{ ids: 'x' },
+		{ ids: {} },
+		{ ids: 123 },
+		{ ids: [] },
+		{ ids: ['not-uuid'] },
+		{ ids: [P1.id, 'abc'] },
+		{ ids: [P1.id, 123] },
+		{ ids: [null] }
+	];
+	for (const body of bodies) {
+		const res = await (body === undefined ? agent.patch(BULK) : agent.patch(BULK).send(body));
+		assert.equal(res.status, 400, JSON.stringify(body));
+		assert.deepEqual(res.body, IDS_BODY, JSON.stringify(body));
+		assert.equal(state.lastBulk, null, JSON.stringify(body));
+	}
+	assert.equal(broadcast.mock.callCount(), 0);
+});
+
+test('K5: 비로그인 401, 일반 사용자는 정상·잘못된 body 모두 403 — DB 불변', async (t) => {
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	setStatus(P1, 'checked');
+	const snapshot = JSON.stringify(state.plans);
+
+	const anonymous = await request
+		.agent(app)
+		.patch(BULK)
+		.send({ ids: [P1.id] });
+	assert.equal(anonymous.status, 401);
+	assert.deepEqual(anonymous.body, NEED_LOGIN_BODY);
+
+	const agent = await loggedIn(USER_ROW.email);
+	for (const body of [{ ids: [P1.id] }, { ids: 'x' }, {}]) {
+		const res = await agent.patch(BULK).send(body);
+		assert.equal(res.status, 403, JSON.stringify(body));
+		assert.deepEqual(res.body, ADMIN_ONLY_BODY, JSON.stringify(body));
+	}
+	assert.equal(JSON.stringify(state.plans), snapshot);
+	assert.equal(state.lastBulk, null);
+	assert.equal(broadcast.mock.callCount(), 0);
+});
+
+test('K6: 라우트 순서 — /bulk-confirm이 /:id로 잡히지 않음 (USER 403, 관리자 400)', async () => {
+	const body = { version: 1, module: 'x' };
+	const user = await loggedIn(USER_ROW.email);
+	const forbidden = await user.patch(BULK).send(body);
+	assert.equal(forbidden.status, 403);
+	assert.deepEqual(forbidden.body, ADMIN_ONLY_BODY);
+
+	const admin = await loggedIn();
+	const res = await admin.patch(BULK).send(body);
+	assert.equal(res.status, 400);
+	assert.deepEqual(res.body, IDS_BODY);
+	assert.notDeepEqual(res.body, VERSION_BODY);
+	assert.notDeepEqual(res.body, NOT_FOUND_BODY);
+});
+
+test('K7: 같은 id가 두 번 들어와도(중복) 한 번만 확정 — data 1개, version 2', async (t) => {
+	t.mock.method(sse, 'broadcast', () => {});
+	setStatus(P1, 'checked');
+	const agent = await loggedIn();
+	const res = await agent.patch(BULK).send({ ids: [P1.id, P1.id] });
+	assert.equal(res.status, 200);
+	assert.deepEqual(idsOf(res), [P1.id]);
+	assert.equal(res.body.data[0].version, 2);
+});
+
+test('K8: 같은 요청을 두 번 — 두 번째는 이미 requested라 {data: []}, broadcast는 1회뿐', async (t) => {
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	setStatus(P1, 'checked');
+	const agent = await loggedIn();
+	const first = await agent.patch(BULK).send({ ids: [P1.id] });
+	assert.equal(first.status, 200);
+	assert.equal(first.body.data.length, 1);
+	const second = await agent.patch(BULK).send({ ids: [P1.id] });
+	assert.equal(second.status, 200);
+	assert.deepEqual(second.body, { data: [] });
+	assert.equal(broadcast.mock.callCount(), 1);
+	assert.equal(dbRow(P1.id).version, 2);
+});
+
+test('K9: 로그인 후 DB 에러 — 500 고정 메시지, broadcast 없음', async (t) => {
+	t.mock.method(console, 'error', () => {});
+	const broadcast = t.mock.method(sse, 'broadcast', () => {});
+	const agent = await loggedIn();
+	state.error = new Error('db down');
+	const res = await agent.patch(BULK).send({ ids: [P1.id] });
+	assert.equal(res.status, 500);
+	assert.deepEqual(res.body, SERVER_ERROR_BODY);
+	assert.equal(broadcast.mock.callCount(), 0);
+});
+
+// ---------- 실시간 스트림 (GET /stream) ----------
+
+test('ST1: 비로그인 GET /stream — 401 JSON', async () => {
+	const res = await request.agent(app).get('/api/imgagong-plans/stream');
+	assert.equal(res.status, 401);
+	assert.deepEqual(res.body, NEED_LOGIN_BODY);
+});
+
+test('ST2: 로그인하면 /:id가 아니라 stream 핸들러(sse.addClient)로 req, res가 전달됨', async (t) => {
+	const addClient = t.mock.method(sse, 'addClient', (req, res) => res.status(204).end());
+	const agent = await loggedIn(USER_ROW.email);
+	const res = await agent.get('/api/imgagong-plans/stream');
+	assert.equal(res.status, 204);
+	assert.equal(addClient.mock.callCount(), 1);
+	assert.equal(addClient.mock.calls[0].arguments[0].user.id, USER_ROW.id);
+});
+
+// 조건이 참이 될 때까지 짧게 폴링하고, 시간이 지나면 실패시키는 대기 도우미
+const waitFor = async (condition, what, timeoutMs = 3000) => {
+	const startedAt = Date.now();
+	while (!condition()) {
+		if (Date.now() - startedAt > timeoutMs) throw new Error(`시간 초과: ${what}`);
+		await new Promise((resolve) => setTimeout(resolve, 10));
+	}
+};
+
+test('ST3: 진짜 연결 — 헤더·": connected" 수신, POST 하면 created 이벤트 수신, 끊으면 등록 해제', async () => {
+	const server = app.listen(0);
+	let req;
+	try {
+		await new Promise((resolve) => server.once('listening', resolve));
+		const { port } = server.address();
+
+		const loginRes = await request(app)
+			.post('/api/auth/login')
+			.send({ email: USER_ROW.email, password: PASSWORD });
+		const cookie = loginRes.headers['set-cookie'].map((c) => c.split(';')[0]).join('; ');
+
+		let buffer = '';
+		const response = await new Promise((resolve, reject) => {
+			req = http.get(
+				{
+					host: '127.0.0.1',
+					port,
+					path: '/api/imgagong-plans/stream',
+					headers: { Cookie: cookie }
+				},
+				resolve
+			);
+			req.on('error', reject);
+		});
+		assert.equal(response.statusCode, 200);
+		assert.match(response.headers['content-type'], /^text\/event-stream/);
+		assert.equal(response.headers['cache-control'], 'no-cache');
+		response.setEncoding('utf8');
+		response.on('data', (chunk) => {
+			buffer += chunk;
+		});
+
+		await waitFor(() => buffer.includes(': connected\n\n'), ': connected');
+		assert.equal(sse.clientCount(), 1);
+
+		const created = await request(app)
+			.post('/api/imgagong-plans')
+			.set('Cookie', cookie)
+			.send(VALID_BODY);
+		assert.equal(created.status, 201);
+
+		const prefix = 'event: created\ndata: ';
+		await waitFor(() => buffer.includes(prefix) && buffer.endsWith('\n\n'), 'created 이벤트');
+		const dataLine = buffer.slice(buffer.indexOf(prefix) + prefix.length).split('\n')[0];
+		assert.deepEqual(JSON.parse(dataLine), created.body);
+
+		req.destroy();
+		await waitFor(() => sse.clientCount() === 0, '연결 해제', 1000);
+	} finally {
+		if (req) req.destroy();
+		server.close();
+	}
 });

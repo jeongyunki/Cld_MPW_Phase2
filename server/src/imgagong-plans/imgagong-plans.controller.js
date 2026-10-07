@@ -2,6 +2,8 @@
 // 400은 항상 service의 404/403보다 먼저 판단한다(형식이 틀린 요청은 DB까지 보내지 않는다).
 
 const imgagongPlansService = require('./imgagong-plans.service');
+// SSE 연결(addClient)은 req/res가 필요한 HTTP 수준 일이라 controller가 직접 호출한다.
+const sse = require('../lib/sse');
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -34,6 +36,9 @@ const REQUIRED_MESSAGES = {
 	owner: '과제 담당자를 입력해 주세요'
 };
 const INTEGER_FIELDS = ['lotCount', 'pkgQty'];
+// service의 UUID_PATTERN과 같은 정규식. 형식이 틀린 id는 DB(uuid 컬럼)에서 에러가 나므로 미리 400으로 막는다.
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const IDS_MESSAGE = 'ids는 uuid 형식의 id를 1개 이상 담은 배열이어야 합니다';
 
 // 쿼리 문자열을 1 이상의 정수로 바꾼다. 없으면 기본값, 형식이 틀리면 null.
 // ('1.5', '-1', 'abc', '', 배열(?page=1&page=2), 너무 큰 수 모두 null)
@@ -51,6 +56,12 @@ const isValidMonth = (value) =>
 	value === undefined || (typeof value === 'string' && MONTH_PATTERN.test(value));
 
 const isValidVersion = (value) => Number.isInteger(value) && value >= 1 && value <= MAX_INT;
+
+// 배열이고, 비어 있지 않고, 모든 원소가 uuid 문자열이어야 한다.
+const isValidIds = (ids) =>
+	Array.isArray(ids) &&
+	ids.length > 0 &&
+	ids.every((id) => typeof id === 'string' && UUID_PATTERN.test(id));
 
 // 필드 하나를 검증하고 저장할 값을 만든다. 실패하면 { message }, 성공하면 { value }.
 // - 필수 필드: 문자열이고 공백만이 아니어야 하며, 앞뒤 공백은 제거
@@ -124,8 +135,22 @@ async function deleteImgagongPlan(req, res) {
 	res.json(await imgagongPlansService.deletePlan(req.params.id, req.user));
 }
 
+// 관리자가 고른 행들의 의뢰 확정(checked → requested). 권한(관리자)은 라우트의 requireAdmin이 먼저 확인한다.
+async function bulkConfirmImgagongPlans(req, res) {
+	const { ids } = req.body ?? {};
+	if (!isValidIds(ids)) return res.status(400).json({ error: { message: IDS_MESSAGE } });
+	res.json(await imgagongPlansService.bulkConfirm(ids, req.user));
+}
+
+// 실시간 변경 알림 스트림. 응답을 끝내지 않고 열어 둔 채 sse가 이벤트를 흘려보낸다.
+function streamImgagongPlans(req, res) {
+	sse.addClient(req, res);
+}
+
 module.exports = {
 	getImgagongPlans,
+	bulkConfirmImgagongPlans,
+	streamImgagongPlans,
 	createImgagongPlan,
 	updateImgagongPlan,
 	deleteImgagongPlan

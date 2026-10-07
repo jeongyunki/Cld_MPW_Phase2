@@ -2,10 +2,15 @@
 // req/res를 모른다. 업무 규칙 위반은 status를 붙인 Error로 던진다.
 
 const imgagongPlansRepository = require('./imgagong-plans.repository');
+// 업무 이벤트 발행(broadcast)은 service의 일이다. 항상 DB 저장이 성공한 뒤에만 보낸다.
+const sse = require('../lib/sse');
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ADMIN_ROLE = 'admin';
+// 상태 흐름: new → checked → requested(의뢰 확정) → approved(결재 완료)
 const NEW_STATUS = 'new';
+const CHECKED_STATUS = 'checked';
+const REQUESTED_STATUS = 'requested';
 const NOT_FOUND_MESSAGE = '임가공 Plan 행을 찾을 수 없습니다';
 const CONFLICT_MESSAGE =
 	'다른 사용자가 먼저 이 행을 수정했습니다. 페이지를 새로고침한 후 다시 시도하세요';
@@ -47,7 +52,9 @@ async function listPlans({ page, limit, startMonth, endMonth }) {
 
 // 클라이언트가 보낸 status는 이미 controller에서 걸러졌다(CREATE_FIELDS에 없음). 새 행은 항상 'new'.
 async function createPlan(fields) {
-	return imgagongPlansRepository.insert({ ...fields, status: NEW_STATUS });
+	const plan = await imgagongPlansRepository.insert({ ...fields, status: NEW_STATUS });
+	sse.broadcast('created', plan);
+	return plan;
 }
 
 // 낙관적 잠금 수정. 먼저 읽고 비교한 뒤 쓰면(읽기→쓰기) 그 사이에 다른 요청이 끼어들 수 있다.
@@ -60,7 +67,10 @@ async function updatePlan(id, version, changes, user) {
 		throw httpError(403, STATUS_FORBIDDEN_MESSAGE);
 	}
 	const updated = await imgagongPlansRepository.updateIfVersion(id, version, changes, user.id);
-	if (updated) return updated;
+	if (updated) {
+		sse.broadcast('updated', updated);
+		return updated;
+	}
 
 	const current = await imgagongPlansRepository.findById(id);
 	if (!current) throw httpError(404, NOT_FOUND_MESSAGE);
@@ -86,7 +96,23 @@ async function deletePlan(id, user) {
 	if (!plan) throw httpError(404, NOT_FOUND_MESSAGE);
 	if (!isAdmin(user) && !isOwner(plan, user)) throw httpError(403, DELETE_FORBIDDEN_MESSAGE);
 	await imgagongPlansRepository.deleteById(plan.id);
-	return { id: plan.id };
+	const result = { id: plan.id };
+	sse.broadcast('deleted', result);
+	return result;
+}
+
+// 일괄 의뢰 확정: 'checked' 행만 'requested'로 바꾼다. 그 밖의 행(없는 id 포함)은 조용히 건너뛴다(부분 성공).
+// version 비교는 하지 않는다 — 상태 조건(WHERE status = 'checked') 자체가 안전장치 역할을 한다.
+// 실제로 바뀐 행이 하나도 없으면 알릴 변화가 없으므로 이벤트를 보내지 않는다.
+async function bulkConfirm(ids, user) {
+	const confirmed = await imgagongPlansRepository.updateStatusByIds(
+		ids,
+		CHECKED_STATUS,
+		REQUESTED_STATUS,
+		user.id
+	);
+	if (confirmed.length > 0) sse.broadcast('bulk-confirmed', confirmed);
+	return { data: confirmed };
 }
 
 module.exports = {
@@ -95,5 +121,6 @@ module.exports = {
 	listPlans,
 	createPlan,
 	updatePlan,
-	deletePlan
+	deletePlan,
+	bulkConfirm
 };
