@@ -161,6 +161,9 @@ curl.exe -b cookies.txt -X DELETE http://localhost:3001/api/deliverables/<위 �
 - `PATCH /api/imgagong-plans/:id` — body에 `version`(화면에서 본 버전)이 필수이고, 바꿀 필드만 함께 보냅니다(목록에 없는 키는 무시, 수정할 필드가 없으면 400). `status`는 관리자만 바꿀 수 있어 일반 사용자가 `status` 키를 보내면(값과 무관) 403입니다. 성공하면 `version`이 1 올라간 행을 돌려줍니다.
 - `DELETE /api/imgagong-plans/:id` — 행의 `owner`(과제 담당자)가 로그인 사용자 이름과 같거나(앞뒤 공백 무시) 관리자일 때만 삭제됩니다. 사용자 이름이 비어 있으면 관리자만 가능하고, 아니면 403입니다. `owner`는 이름 문자열이라 오타·동명이인이 있을 수 있고, `owner`를 수정해 삭제 권한을 얻을 수도 있습니다.
 - id가 없거나 uuid 형식이 아니면 404, 비로그인은 401입니다.
+- `PATCH /api/imgagong-plans/bulk-confirm` — **관리자 전용**. body `{ "ids": [uuid, ...] }`. status가 `checked`인 행만 `requested`로 바꾸고(version+1) 바뀐 행만 `{ data: [...] }`로 돌려준다. 그 밖의 행·없는 id는 건너뛴다(부분 성공, 0개여도 200). ids가 배열이 아니거나 비어 있거나 uuid가 아닌 원소가 있으면 400, 일반 사용자는 403.
+- `GET /api/imgagong-plans/stream` — SSE 실시간 알림(로그인 필요). 연결을 열어 두면 `created`·`updated`·`deleted`·`bulk-confirmed` 이벤트가 오고, 30초마다 `: ping`이 온다. 재연결 때 놓친 변경은 보내 주지 않으므로 목록을 다시 조회한다.
+- 상태 흐름: `new → checked → requested(의뢰 확정) → approved(결재 완료)`
 - 낙관적 잠금: 다른 사용자가 먼저 같은 행을 저장해 `version`이 올라가 있으면 PATCH는 409(`다른 사용자가 먼저 이 행을 수정했습니다. 페이지를 새로고침한 후 다시 시도하세요`)입니다. 새로고침해서 최신 `version`을 받은 뒤 다시 시도하세요.
 
 확인 (7절의 `cookies.txt` 재사용):
@@ -170,6 +173,8 @@ curl.exe -b cookies.txt -H "Content-Type: application/json" -d '{"category":"산
 curl.exe -b cookies.txt "http://localhost:3001/api/imgagong-plans?startMonth=2026-01&endMonth=2026-12"
 curl.exe -b cookies.txt -X PATCH -H "Content-Type: application/json" -d '{"version":1,"module":"M1"}' http://localhost:3001/api/imgagong-plans/<위 응답의 id>
 curl.exe -b cookies.txt -X DELETE http://localhost:3001/api/imgagong-plans/<위 응답의 id>
+curl.exe -N -b cookies.txt http://localhost:3001/api/imgagong-plans/stream
+curl.exe -b cookies.txt -X PATCH -H "Content-Type: application/json" -d '{"ids":["<id>"]}' http://localhost:3001/api/imgagong-plans/bulk-confirm
 ```
 
 ## 11. 테스트

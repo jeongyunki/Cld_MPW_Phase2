@@ -98,8 +98,32 @@ async function updateIfVersion(id, version, changes, updatedBy) {
 	return row ? toImgagongPlan(row) : null;
 }
 
+// 여러 행의 status를 한 번의 UPDATE로 바꾼다. WHERE status = fromStatus 때문에 조건에 안 맞는 행은 갱신되지 않고,
+// returning에는 실제로 바뀐 행만 담긴다. version은 낙관적 잠금과 같은 방식으로 DB가 1 올린다.
+async function updateStatusByIds(ids, fromStatus, toStatus, updatedBy) {
+	const rows = await db('imgagong_plans')
+		.whereIn('id', ids)
+		.where({ status: fromStatus })
+		.update({
+			status: toStatus,
+			version: db.raw('version + 1'),
+			updated_at: db.fn.now(),
+			updated_by: updatedBy
+		})
+		.returning('*');
+	return rows.map(toImgagongPlan);
+}
+
 async function deleteById(id) {
 	return db('imgagong_plans').where({ id }).del();
 }
 
-module.exports = { findPage, countMatching, findById, insert, updateIfVersion, deleteById };
+module.exports = {
+	findPage,
+	countMatching,
+	findById,
+	insert,
+	updateIfVersion,
+	updateStatusByIds,
+	deleteById
+};
