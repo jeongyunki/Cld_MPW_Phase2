@@ -182,12 +182,12 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: Deliverables 등록/조회/다운로드/삭제(FR-DL-01~04)와 엑셀 파일의 로컬 저장/서빙 구현.
 
 **완료 조건**
-- [ ] `POST /api/deliverables`(multipart/form-data, `multer`) — `lib/upload.js`가 저장 경로(`uploads/deliverables/{id}.xlsx`)와 10MB 초과 시 400 처리
-- [ ] `GET /api/deliverables` — 페이지네이션, 차수/공정명 검색, 최신순 정렬
-- [ ] `GET /api/deliverables/:id/download` — 파일 스트리밍 응답(`/uploads` URL 직접 노출 금지)
-- [ ] `DELETE /api/deliverables/:id` — 등록자 본인 또는 관리자만 가능
-- [ ] `mpw_round`/`process_name` 미입력 시 400, 모든 엔드포인트 `requireAuth`
-- [ ] **프론트 확인 방법**: 파일+필드 등록 → 201, `GET` 목록에 표시, `download`로 원본 파일 그대로 다운로드
+- [x] `POST /api/deliverables`(multipart/form-data, `multer`) — `lib/upload.js`가 저장 경로(`uploads/deliverables/{id}.{xlsx|xls}`)와 10MB 초과 시 400 처리
+- [x] `GET /api/deliverables` — 페이지네이션, 차수/공정명 검색, 최신순 정렬
+- [x] `GET /api/deliverables/:id/download` — 파일 스트리밍 응답(`/uploads` URL 직접 노출 금지)
+- [x] `DELETE /api/deliverables/:id` — 등록자 본인 또는 관리자만 가능
+- [x] `mpw_round`/`process_name` 미입력 시 400, 모든 엔드포인트 `requireAuth`
+- [x] **프론트 확인 방법**: 파일+필드 등록 → 201, `GET` 목록에 표시, `download`로 원본 파일 그대로 다운로드
 
 **의존성**: DB-2, BE-1, BE-2
 

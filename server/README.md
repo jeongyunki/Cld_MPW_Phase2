@@ -38,6 +38,7 @@ SESSION_SECRET=<아래 명령으로 생성한 값>
 ADMIN_EMAIL=admin@mpw.local
 ADMIN_PASSWORD=<관리자 비밀번호>
 ADMIN_NAME=관리자
+UPLOAD_DIR=
 ```
 
 `SESSION_SECRET`은 세션 쿠키 서명용 비밀값이며 필수입니다 (비어 있으면 모든 API 요청이 500). 생성:
@@ -47,6 +48,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 `ADMIN_*`는 5절의 관리자 seed가 사용합니다.
+
+`UPLOAD_DIR`은 업로드 파일 저장 루트이며 비우면 `server/uploads`입니다 (상대경로는 `server/` 기준, git 제외). Deliverables 파일은 `<루트>/deliverables/{id}.{xlsx|xls}`로 저장됩니다.
 
 `.env`는 git에 올라가지 않습니다. `knexfile.js`가 시작할 때 이 파일을 읽습니다.
 
@@ -130,7 +133,26 @@ curl.exe -b cookies.txt -H "Content-Type: application/json" -d '{"fieldName":"ch
 curl.exe -b cookies.txt -X DELETE http://localhost:3001/api/master-items/<위 응답의 id>
 ```
 
-## 9. 테스트
+## 9. Deliverables API
+
+MPW 차수·공정별 엑셀 산출물을 업로드/다운로드합니다. 모든 엔드포인트는 로그인 사용자용입니다.
+
+- `GET /api/deliverables?page=1&limit=20&search=` — 최신순 목록 `{ data, total, page, limit }`. `search`는 차수·공정명에 대소문자 무시로 포함된 행만 남깁니다. `page`/`limit`이 1 이상의 정수가 아니면 400입니다.
+- `POST /api/deliverables` — `multipart/form-data`. 필드 `mpwRound`, `processName`(앞뒤 공백 제거)과 파일 `file`. 확장자 `.xlsx`/`.xls`(대소문자 무시)만, 최대 10MB. 필드 누락·확장자 오류·크기 초과는 400, 성공하면 201입니다. 같은 차수·공정명도 여러 번 등록할 수 있습니다.
+- `GET /api/deliverables/:id/download` — 원본 파일명으로 내려받습니다. id가 uuid가 아니거나 행이 없으면 404, 행은 있는데 파일이 없어도 404입니다.
+- `DELETE /api/deliverables/:id` — 등록자 본인 또는 관리자만(등록자가 없는 행은 관리자만). 아니면 403입니다. DB 행과 디스크 파일을 함께 지웁니다.
+- 파일은 사용자가 올린 이름이 아니라 `{uuid}.{xlsx|xls}`로 저장하며, 원본 파일명은 DB(`original_file_name`)에 보관합니다. 이 컬럼은 새 migration이 추가하므로 `npx knex migrate:latest`를 먼저 실행하세요.
+
+확인 (7절의 `cookies.txt` 재사용):
+
+```sh
+curl.exe -b cookies.txt -F "mpwRound=MPW2026-Q3" -F "processName=0.13um" -F "file=@chip_design.xlsx" http://localhost:3001/api/deliverables
+curl.exe -b cookies.txt "http://localhost:3001/api/deliverables?page=1&limit=20&search=0.13"
+curl.exe -b cookies.txt -OJ http://localhost:3001/api/deliverables/<위 응답의 id>/download
+curl.exe -b cookies.txt -X DELETE http://localhost:3001/api/deliverables/<위 응답의 id>
+```
+
+## 10. 테스트
 
 ```sh
 pnpm test                        # 전체 테스트 + 커버리지 (80% 미만이면 실패)

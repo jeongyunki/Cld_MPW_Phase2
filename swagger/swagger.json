@@ -168,7 +168,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "차수(mpwRound) 또는 공정명(processName)으로 검색",
+            "description": "차수(mpwRound) 또는 공정명(processName)에 포함된 항목 검색 (대소문자 무시, 앞뒤 공백 제거)",
             "required": false,
             "schema": { "type": "string" }
           }
@@ -179,6 +179,14 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/DeliverableListResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "page/limit이 1 이상의 정수가 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           },
@@ -208,7 +216,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "엑셀 파일 (최대 10MB)"
+                    "description": "엑셀 파일 .xlsx/.xls (최대 10MB)"
                   }
                 }
               }
@@ -225,7 +233,7 @@
             }
           },
           "400": {
-            "description": "mpwRound/processName 미입력 또는 파일 크기(10MB) 초과",
+            "description": "mpwRound/processName 미입력, 파일 없음, .xlsx/.xls가 아닌 확장자, 파일 크기(10MB) 초과 또는 잘못된 업로드 형식",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -252,7 +260,7 @@
         ],
         "responses": {
           "200": {
-            "description": "파일 바이너리 스트림",
+            "description": "파일 바이너리 스트림. Content-Disposition 파일명은 originalFileName (없으면 {id}.{확장자})",
             "content": {
               "application/octet-stream": {
                 "schema": { "type": "string", "format": "binary" }
@@ -268,7 +276,7 @@
             }
           },
           "404": {
-            "description": "존재하지 않는 Deliverables 항목",
+            "description": "존재하지 않는 Deliverables 항목(uuid 형식이 아닌 id 포함) 또는 서버에 파일이 없음",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -311,7 +319,7 @@
             }
           },
           "404": {
-            "description": "존재하지 않는 Deliverables 항목",
+            "description": "존재하지 않는 Deliverables 항목 (uuid 형식이 아닌 id 포함)",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -790,8 +798,10 @@
           "id": { "type": "string", "format": "uuid" },
           "mpwRound": { "type": "string", "nullable": true, "description": "MPW 차수" },
           "processName": { "type": "string", "nullable": true, "description": "공정명" },
-          "filePath": { "type": "string", "nullable": true, "description": "업로드된 엑셀 파일 경로" },
+          "originalFileName": { "type": "string", "nullable": true, "description": "업로드한 원본 파일명 — 다운로드 파일명으로 사용" },
+          "filePath": { "type": "string", "nullable": true, "description": "UPLOAD_DIR 기준 상대경로 (예: deliverables/{id}.xlsx)" },
           "registeredBy": { "type": "string", "format": "uuid", "nullable": true, "description": "등록자 -> users.id" },
+          "registeredByName": { "type": "string", "nullable": true, "description": "등록자 이름(users.name), 등록자가 삭제되면 null" },
           "createdAt": { "type": "string", "format": "date-time", "description": "등록일시" },
           "updatedAt": { "type": "string", "format": "date-time", "nullable": true },
           "version": { "type": "integer" }

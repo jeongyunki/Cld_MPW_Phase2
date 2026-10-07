@@ -374,9 +374,9 @@
 **데이터 흐름**
 1. 사용자가 Deliverables 등록 (차수, 공정명, 엑셀 파일)
 2. 프론트엔드가 `POST /api/deliverables`로 요청 (multipart/form-data)
-3. Express가 파일을 `/uploads/deliverables/{id}.xlsx` 저장, DB에 메타데이터 기록
+3. Express가 파일을 `/uploads/deliverables/{id}.{xlsx|xls}` 저장, DB에 메타데이터 기록
 4. 임가공 Plan에서 사용자가 "Deliverables 선택" 클릭 → `GET /api/deliverables` 호출
-5. 팝업에서 항목 선택 → `GET /uploads/deliverables/{id}.xlsx` 다운로드 후 MapGen 로직 실행
+5. 팝업에서 항목 선택 → `GET /api/deliverables/{id}/download` 다운로드 후 MapGen 로직 실행
 
 **보안 고려**
 - 파일 다운로드 시 URL 직접 노출 금지, `/api/deliverables/{id}/download` 엔드포인트로 리다이렉트
