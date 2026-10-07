@@ -200,13 +200,13 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 **목표/범위**: 임가공 Plan 생성/조회(기간 필터)/편집/삭제(FR-IM-01~04), PATCH에 낙관적 잠금 적용.
 
 **완료 조건**
-- [ ] `POST /api/imgagong-plans` — 필수 필드 검증 후 생성, `status`는 항상 서버가 `'new'`로 고정
-- [ ] `GET /api/imgagong-plans` — 기간 필터(`created_at` 범위), 페이지네이션, 최신순
-- [ ] `PATCH /api/imgagong-plans/:id` — body에 `version` 필수, DB 현재 값과 다르면 409, 성공 시 `version+1`/`updated_at`/`updated_by` 갱신
-- [ ] `DELETE /api/imgagong-plans/:id` — `owner`가 본인이거나 관리자일 때만 허용
-- [ ] 낙관적 잠금 버전 비교 로직을 `req`/`res` 없는 순수 함수로 분리, 여기에만 최소 단위 테스트 1~2개
-- [ ] 모든 엔드포인트 `requireAuth`
-- [ ] **프론트 확인 방법**: 같은 id를 오래된 `version`으로 두 번 PATCH → 두 번째 요청 409
+- [x] `POST /api/imgagong-plans` — 필수 필드 검증 후 생성, `status`는 항상 서버가 `'new'`로 고정
+- [x] `GET /api/imgagong-plans` — 기간 필터(`created_at` 범위), 페이지네이션, 최신순
+- [x] `PATCH /api/imgagong-plans/:id` — body에 `version` 필수, DB 현재 값과 다르면 409, 성공 시 `version+1`/`updated_at`/`updated_by` 갱신
+- [x] `DELETE /api/imgagong-plans/:id` — `owner`가 본인이거나 관리자일 때만 허용
+- [x] 낙관적 잠금 버전 비교 로직을 `req`/`res` 없는 순수 함수로 분리, 여기에만 최소 단위 테스트 1~2개
+- [x] 모든 엔드포인트 `requireAuth`
+- [x] **프론트 확인 방법**: 같은 id를 오래된 `version`으로 두 번 PATCH → 두 번째 요청 409
 
 **의존성**: DB-2, BE-1, BE-2
 

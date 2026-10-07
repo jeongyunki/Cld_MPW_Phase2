@@ -339,16 +339,16 @@
           {
             "name": "startMonth",
             "in": "query",
-            "description": "조회 시작 년월 (YYYY-MM), createdAt 기준",
+            "description": "조회 시작 년월 (YYYY-MM), createdAt 기준. 해당 월 1일 0시 이상. 생략하면 시작 경계 없음",
             "required": false,
-            "schema": { "type": "string", "example": "2026-01" }
+            "schema": { "type": "string", "pattern": "^\\d{4}-(0[1-9]|1[0-2])$", "example": "2026-01" }
           },
           {
             "name": "endMonth",
             "in": "query",
-            "description": "조회 종료 년월 (YYYY-MM), createdAt 기준",
+            "description": "조회 종료 년월 (YYYY-MM), createdAt 기준. 종료월 다음 달 1일 0시 미만(종료월 포함). 생략하면 종료 경계 없음. 시작 > 종료이면 빈 결과",
             "required": false,
-            "schema": { "type": "string", "example": "2026-12" }
+            "schema": { "type": "string", "pattern": "^\\d{4}-(0[1-9]|1[0-2])$", "example": "2026-12" }
           }
         ],
         "responses": {
@@ -357,6 +357,14 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ImgagongPlanListResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "page/limit이 1 이상의 정수가 아니거나 startMonth/endMonth가 YYYY-MM 형식이 아님",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
               }
             }
           },
@@ -372,7 +380,7 @@
       },
       "post": {
         "tags": ["imgagong-plans"],
-        "summary": "임가공 Plan 행 추가 (status는 서버가 항상 'new'로 고정)",
+        "summary": "임가공 Plan 행 추가 (status는 서버가 항상 'new'로 고정, body의 status는 무시)",
         "requestBody": {
           "required": true,
           "content": {
@@ -391,7 +399,7 @@
             }
           },
           "400": {
-            "description": "필수 필드(구분/조립처/Chip size/PKG Type/과제 담당자) 누락",
+            "description": "필수 필드(구분/조립처/Chip size/PKG Type/과제 담당자)가 없거나 공백뿐이거나 문자열이 아님, 선택 문자열 필드가 문자열/null이 아님, lotCount/pkgQty가 0 이상 2147483647 이하의 정수/null이 아님",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -502,7 +510,7 @@
     "/imgagong-plans/{id}": {
       "patch": {
         "tags": ["imgagong-plans"],
-        "summary": "임가공 Plan 행 편집 (낙관적 잠금, body에 version 필수)",
+        "summary": "임가공 Plan 행 편집 (낙관적 잠금, body에 version 필수). body에 포함된 수정 가능 필드만 반영하고 그 외 키(id, createdAt 등)는 무시. status는 관리자만 변경 가능",
         "parameters": [
           { "$ref": "#/components/parameters/IdParam" }
         ],
@@ -524,7 +532,7 @@
             }
           },
           "400": {
-            "description": "body에 version이 없거나 필드 값이 올바르지 않음",
+            "description": "version이 1 이상 2147483647 이하의 정수가 아님, 수정할 필드가 하나도 없음, 필수 필드(구분/조립처/Chip size/PKG Type/과제 담당자)에 빈 값을 보냄, 필드 값 형식 오류",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -539,8 +547,17 @@
               }
             }
           },
+          "403": {
+            "description": "관리자가 아닌 사용자가 body에 status를 포함(값과 무관)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "error": { "message": "상태(status)는 관리자만 변경할 수 있습니다" } }
+              }
+            }
+          },
           "404": {
-            "description": "존재하지 않는 임가공 Plan 행",
+            "description": "존재하지 않는 임가공 Plan 행 (uuid 형식이 아닌 id 포함)",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -560,7 +577,7 @@
       },
       "delete": {
         "tags": ["imgagong-plans"],
-        "summary": "임가공 Plan 행 삭제 (owner 본인 또는 관리자만 가능)",
+        "summary": "임가공 Plan 행 삭제 (owner 본인 또는 관리자만 가능). owner 판정: 행의 owner.trim() === 로그인 사용자 name.trim() (사용자 이름이 비어 있으면 관리자만). owner는 이름 문자열이라 오타·동명이인이 있을 수 있고, owner를 수정해 삭제 권한을 얻을 수도 있음",
         "parameters": [
           { "$ref": "#/components/parameters/IdParam" }
         ],
@@ -591,7 +608,7 @@
             }
           },
           "404": {
-            "description": "존재하지 않는 임가공 Plan 행",
+            "description": "존재하지 않는 임가공 Plan 행 (uuid 형식이 아닌 id 포함)",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -854,8 +871,8 @@
           "gcmCode": { "type": "string", "nullable": true },
           "pkgType": { "type": "string", "description": "PKG Type" },
           "customer": { "type": "string", "nullable": true },
-          "lotCount": { "type": "integer", "nullable": true },
-          "pkgQty": { "type": "integer", "nullable": true },
+          "lotCount": { "type": "integer", "nullable": true, "minimum": 0, "maximum": 2147483647 },
+          "pkgQty": { "type": "integer", "nullable": true, "minimum": 0, "maximum": 2147483647 },
           "owner": { "type": "string", "description": "과제 담당자" }
         }
       },
@@ -863,19 +880,19 @@
         "type": "object",
         "required": ["version"],
         "properties": {
-          "version": { "type": "integer", "description": "현재 수정하려는 기준 버전 번호 (낙관적 잠금)" },
-          "status": { "type": "string", "nullable": true },
-          "category": { "type": "string", "nullable": true },
-          "assembler": { "type": "string", "nullable": true },
-          "chipSize": { "type": "string", "nullable": true },
+          "version": { "type": "integer", "minimum": 1, "maximum": 2147483647, "description": "현재 수정하려는 기준 버전 번호 (낙관적 잠금)" },
+          "status": { "type": "string", "nullable": true, "description": "관리자만 변경 가능. 공백뿐이면 null로 저장" },
+          "category": { "type": "string" },
+          "assembler": { "type": "string" },
+          "chipSize": { "type": "string" },
           "module": { "type": "string", "nullable": true },
           "projectName": { "type": "string", "nullable": true },
           "gcmCode": { "type": "string", "nullable": true },
-          "pkgType": { "type": "string", "nullable": true },
+          "pkgType": { "type": "string" },
           "customer": { "type": "string", "nullable": true },
-          "lotCount": { "type": "integer", "nullable": true },
-          "pkgQty": { "type": "integer", "nullable": true },
-          "owner": { "type": "string", "nullable": true }
+          "lotCount": { "type": "integer", "nullable": true, "minimum": 0, "maximum": 2147483647 },
+          "pkgQty": { "type": "integer", "nullable": true, "minimum": 0, "maximum": 2147483647 },
+          "owner": { "type": "string" }
         }
       },
       "ImgagongPlanListResponse": {
