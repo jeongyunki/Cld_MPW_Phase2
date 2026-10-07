@@ -93,17 +93,17 @@ routes (요청 매핑)  →  controllers (요청/응답 처리)  →  services (
 
 ## 4. 테스트/품질 원칙
 
-백엔드는 BE-1부터 Node 내장 러너(`node:test`) + `supertest`로 테스트하고, Task마다 커버리지 80% 이상을 요구한다(`pnpm --filter server test`가 80% 미만이면 실패). 프론트는 러너가 없고 순수 함수 위주 원칙을 유지한다. (출처: 이슈 #2 결정 댓글)
+백엔드는 BE-1부터 Node 내장 러너(`node:test`) + `supertest`로 테스트하고, Task마다 커버리지 80% 이상을 요구한다(`pnpm --filter server test`가 80% 미만이면 실패). (출처: 이슈 #2 결정 댓글) 프론트는 FE-1부터 Vitest로 `src/lib`의 Svelte 비의존 모듈을 테스트한다(`pnpm test`, 커버리지 80% 미만이면 실패 — 대상은 `src/lib/api`부터 시작해 이후 이슈마다 넓힌다). (출처: 이슈 #3 결정 댓글)
 
 1. **백엔드는 HTTP 수준 테스트를 허용하되, 실제 PostgreSQL 통합 테스트는 도입하지 않는다.**
    - 백엔드: `supertest`로 `app`에 요청을 보내 상태코드/응답 본문을 검증할 수 있다. services 계층의 업무 로직(낙관적 잠금 버전 체크, 권한 판단, 상태 전이 규칙)은 `req`/`res`나 DB 연결 없이 테스트한다.
    - DB가 필요한 경로는 DB 연결 모듈(`src/db/connection.js`)을 가짜로 대체해서 테스트한다. 실제 DB를 띄우는 통합 테스트, UI 렌더링 테스트, E2E 테스트는 지금 단계에서 도입하지 않는다.
-   - 프론트: `parseModuleData.js`처럼 Svelte에 의존하지 않는 순수 함수만 테스트 대상으로 삼는다.
+   - 프론트: `src/lib`의 Svelte에 의존하지 않는 모듈(`src/lib/api/*.js`, `parseModuleData.js` 같은 순수 함수)만 테스트 대상으로 삼는다. 네트워크는 `fetch`를 `vi.stubGlobal`로 가짜로 대체하고 실제 백엔드에 요청하지 않는다. 컴포넌트 렌더링(UI) 테스트와 E2E 테스트는 도입하지 않는다.
    *근거*: HTTP 수준 테스트는 인프라 없이도 라우팅·에러 처리·CORS 같은 "배선" 실수를 잡아준다. 실제 DB 통합/E2E는 인프라 준비 비용이 학습 목적 프로젝트 규모에 비해 크다.
 
-2. **백엔드 테스트 러너는 Node 내장 `node:test`를 쓴다.**
-   서버가 CommonJS + Node 24라서 별도 설정(트랜스파일, config 파일) 없이 바로 돌고, 커버리지 임계값(`--test-coverage-lines` 등)도 내장되어 있다. Vitest 같은 외부 러너는 추가하지 않는다.
-   *근거*: 1번 최상위 원칙(오버엔지니어링 금지) — 내장 기능으로 충분하면 의존성을 늘리지 않는다.
+2. **테스트 러너는 영역별로 하나씩: 백엔드는 `node:test`, 프론트는 Vitest.**
+   서버는 CommonJS + Node 24라서 별도 설정 없이 바로 도는 내장 `node:test`를 유지한다(커버리지 임계값 `--test-coverage-lines` 등도 내장). 프론트는 `import.meta.env`, `$lib` 같은 Vite 전용 기능을 쓰므로 Node 단독으로는 돌릴 수 없다. 그래서 `vite.config.ts`를 그대로 공유하는 Vitest를 쓴다(`test` 블록만 추가하고 별도 설정 파일은 만들지 않음). 테스트 파일은 대상 옆에 `*.test.js`로 둔다.
+   *근거*: 1번 최상위 원칙 — 각 영역에서 설정이 가장 적게 드는 러너를 고른다. 프론트에 `node:test`를 쓰려면 Vite 기능을 흉내 내는 설정이 따로 필요해진다.
 
 3. **Lint/format은 지금처럼 커밋 전 수동 실행으로 충분하다.**
    `pnpm lint`(prettier --check + eslint), `pnpm format`을 계속 사용한다. 백엔드 코드가 추가되면 같은 `eslint`/`prettier` 설정 범위에 포함시키되(현재 prettier 설정에 이미 전체 저장소가 대상), 백엔드 전용 별도 룰셋을 새로 만들지 않는다.
@@ -173,6 +173,7 @@ src/
         └── masterItems.js
 ```
 
+- FE-1(이슈 #3)에서는 `client.js`(공통 `request` 함수)와 리소스 모듈 3개, 같은 폴더의 `*.test.js`만 만든다. `auth.js`는 FE-2(#8), `sse.js`는 FE-6B(#16)에서 추가한다.
 - `src/lib/api/*`가 백엔드 REST 엔드포인트와 1:1로 대응한다(예: `imgagongPlans.js` ↔ `/api/imgagong-plans`).
 - 각 스토어(`*.svelte.js`)는 대응하는 `api/*.js` 모듈만 import한다(2절 의존성 원칙).
 - SSE 구독(실시간 반영)이 필요한 스토어(`imgagongStore.svelte.js`, `masterStore.svelte.js`)는 `api/client.js` 옆에 `api/sse.js` 하나를 추가해 `EventSource` 연결을 공유하는 정도로 충분하다(스토어별로 각자 연결을 열지 않음).
