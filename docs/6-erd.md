@@ -16,6 +16,7 @@ erDiagram
         varchar mpw_round "MPW 차수 (key-in 텍스트)"
         varchar process_name "공정명 (key-in 텍스트)"
         varchar file_path "업로드된 엑셀 파일 경로"
+        varchar original_file_name "업로드한 원본 파일명 (다운로드 파일명으로 사용)"
         uuid registered_by FK "등록자 -> users.id"
         timestamp created_at "등록일시"
         timestamp updated_at

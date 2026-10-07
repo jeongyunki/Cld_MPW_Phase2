@@ -10,5 +10,6 @@ const router = express.Router();
 router.get('/health', getHealth);
 router.use('/auth', require('./auth/auth.routes'));
 router.use('/master-items', require('./master-items/master-items.routes'));
+router.use('/deliverables', require('./deliverables/deliverables.routes'));
 
 module.exports = router;

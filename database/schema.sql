@@ -50,6 +50,7 @@ CREATE TABLE deliverables (
   mpw_round varchar(255),
   process_name varchar(255),
   file_path varchar(1024),
+  original_file_name varchar(255), -- 업로드한 원본 파일명 (다운로드 파일명으로 사용, BE-4)
   registered_by uuid REFERENCES users (id) ON DELETE SET NULL,
   created_at timestamp NOT NULL DEFAULT now(),
   updated_at timestamp,
