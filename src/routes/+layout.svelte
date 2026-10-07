@@ -5,6 +5,8 @@
   // SvelteKit이 제공하는 "현재 URL 정보" 스토어.
   // 사이드바에서 "지금 어떤 메뉴가 선택되어 있는지" 표시하는 데 쓴다.
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
+  import { auth, checkSession, logout } from '$lib/authStore.svelte.js';
   import { theme, toggleTheme } from '$lib/theme.svelte.js';
 
   // Svelte 5 + SvelteKit의 최신 방식: 레이아웃 안에 끼워질 페이지 내용은
@@ -19,6 +21,36 @@
     document.documentElement.classList.toggle('light', theme.mode === 'light');
   });
 
+  // 앱 시작 시 세션을 1회 확인한다. 이 effect는 반응형 값을 읽지 않으므로 다시 실행되지 않는다
+  // (≈ React의 useEffect(fn, [])). 여기서 auth.*를 읽으면 의존성이 생겨 재실행되니 읽지 말 것.
+  $effect(() => {
+    checkSession();
+  });
+
+  // redirectTo는 '/'로 시작하고 '//'로 시작하지 않을 때만 허용한다.
+  // '//evil.com'이나 'https://evil.com'을 그대로 따라가면 로그인 후 외부 사이트로 보내지는
+  // 오픈 리다이렉트 취약점이 되기 때문이다.
+  function safeRedirect(target) {
+    return target && target.startsWith('/') && !target.startsWith('//') ? target : '/';
+  }
+
+  // 인증 가드: auth.user / 현재 URL이 바뀔 때마다 다시 실행된다 ($effect의 자동 의존성 추적,
+  // React라면 useEffect 의존성 배열에 직접 적어야 한다). 로그인·로그아웃 후 이동도 모두 여기서 한다.
+  // replaceState: true — 히스토리에 /login 항목을 쌓지 않는다. 쌓으면 뒤로가기를 눌렀을 때
+  // 가드가 다시 /login으로 튕겨 보내서 뒤로가기가 먹통이 된다.
+  $effect(() => {
+    if (!auth.checked) return;
+    const { pathname, search, searchParams } = $page.url;
+    const onLogin = pathname === '/login';
+    if (!auth.user && !onLogin) {
+      // base 경로를 쓰지 않는 앱이라 resolve()는 생략한다
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
+      goto(`/login?redirectTo=${encodeURIComponent(pathname + search)}`, { replaceState: true });
+    } else if (auth.user && onLogin) {
+      goto(safeRedirect(searchParams.get('redirectTo')), { replaceState: true });
+    }
+  });
+
   // 사이드바 메뉴 목록. 여기에 새 항목을 추가하면 메뉴가 하나씩 늘어난다.
   // href는 routes 폴더 구조와 그대로 대응된다 (예: '/mapgen' -> src/routes/mapgen/+page.svelte)
   const menuItems = [
@@ -31,6 +63,10 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
+{#if $page.url.pathname === '/login'}
+  <!-- 로그인 화면은 사이드바·테마 토글 없이 전체 화면 -->
+  {@render children()}
+{:else if auth.user}
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand">
@@ -49,6 +85,11 @@
         </a>
       {/each}
     </nav>
+
+    <div class="sidebar-user">
+      <div class="user-email">👤 {auth.user.email}</div>
+      <button type="button" class="logout-btn" onclick={logout}>로그아웃</button>
+    </div>
 
     <div class="sidebar-footer">v0.1 · 학습용 프로토타입</div>
   </aside>
@@ -69,6 +110,7 @@
     {@render children()}
   </main>
 </div>
+{/if}
 
 <style>
   /* ------------------------------------------------------------------
@@ -229,6 +271,32 @@
     font-size: 16px;
     width: 20px;
     text-align: center;
+  }
+
+  .sidebar-user {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 6px;
+    border-top: 1px solid var(--border);
+  }
+  .user-email {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  .logout-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .logout-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-light);
   }
 
   .sidebar-footer {

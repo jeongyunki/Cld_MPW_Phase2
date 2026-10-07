@@ -20,7 +20,7 @@
 ### 구조와 규칙
 
 - Svelte 5 runes(`$state`, `$derived`, `$effect`). 공유 상태는 `src/lib/*.svelte.js` 모듈에 둔다. export한 `$state`는 재할당할 수 없으므로 배열·객체의 내용을 바꾸는 방식으로 갱신한다.
-- 라우트를 추가하면 `src/routes/+layout.svelte`의 `menuItems`에도 등록한다.
+- 라우트를 추가하면 `src/routes/+layout.svelte`의 `menuItems`에도 등록한다 (예외: `/login`은 등록하지 않는다).
 - 색은 하드코딩하지 말고 테마 CSS 변수(`var(--bg-page)` 등)를 쓴다. Tailwind v4.
 - 재사용 컴포넌트(팝업 등)는 PascalCase(`DeliverablesPickerModal.svelte`), 스토어·API 모듈은 camelCase(`deliverablesStore.svelte.js`, `api/imgagongPlans.js`).
 - API 연동 (FE-1 이후):
@@ -28,7 +28,7 @@
   - 세션 쿠키 인증이므로 `fetch`에 `credentials: 'include'`.
   - 요청·응답 필드는 camelCase(`chipSize`, `createdAt` 등) — 프론트에서 변환하지 않는다.
   - 모든 요청은 `src/lib/api/client.js`의 `request(path, { method, query, body })`를 거친다. 4xx/5xx는 `err.status`와 서버 메시지(`err.message`)가 담긴 Error로 던져지고, 네트워크 실패는 원래 TypeError 그대로 전파된다. client는 콘솔에 찍지 않는다(처리·표시는 스토어 책임).
-  - 에러 응답은 `{ error: { message } }`. 4xx/5xx는 에러로 던지고 조용히 삼키지 않는다. 401은 로그인 화면으로 보낸다.
+  - 에러 응답은 `{ error: { message } }`. 4xx/5xx는 에러로 던지고 조용히 삼키지 않는다. 401은 각 스토어의 catch에서 `err.status === 401`이면 `authStore`의 `clearUser()`를 호출한다 — 레이아웃이 `auth.user === null`을 보고 `/login?redirectTo=현재경로`로 보낸다. 스토어는 `goto`를 쓰지 않는다.
 - `src/lib/parseModuleData.js`는 Svelte에 의존하지 않는 순수 함수로 유지한다.
 - 기존 파일 일부는 2칸 들여쓰기·큰따옴표다. 재포맷은 수정하는 파일에만 한다.
 - 주석은 한국어 학습용 설명 스타일(Svelte를 React와 비교 등).

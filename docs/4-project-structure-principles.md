@@ -150,6 +150,8 @@ src/
 ├── routes/
 │   ├── +layout.svelte          # 기존 — menuItems에 Deliverables 메뉴 추가 필요
 │   ├── +page.svelte            # 기존 (Welcome)
+│   ├── login/                   # 신규 (FE-2) — 사이드바 없는 전체 화면, menuItems 미등록
+│   │   └── +page.svelte
 │   ├── mapgen/
 │   │   └── +page.svelte        # 기존 — FR-MG-02(파일 선택 팝업) 추가 예정
 │   ├── imgagong/
@@ -164,16 +166,18 @@ src/
     ├── masterStore.svelte.js    # 기존 — 내부 구현만 fetch로 교체
     ├── imgagongStore.svelte.js  # 기존 — 내부 구현만 fetch로 교체
     ├── deliverablesStore.svelte.js  # 신규 — 위 두 스토어와 동일 패턴
+    ├── authStore.svelte.js      # 신규 (FE-2) — 로그인 사용자(auth.user, role)와 세션 확인 여부
     ├── theme.svelte.js          # 기존, 변경 없음
     ├── parseModuleData.js       # 기존, 변경 없음 (순수 로직)
     └── api/                     # 신규 — API 클라이언트 계층 (2절 참고)
         ├── client.js            # fetch 공통 래퍼 (base URL, 에러 처리 등 최소 공통 로직만)
+        ├── auth.js              # 신규 (FE-2) — /auth/login·logout·me
         ├── deliverables.js
         ├── imgagongPlans.js
         └── masterItems.js
 ```
 
-- FE-1(이슈 #3)에서는 `client.js`(공통 `request` 함수)와 리소스 모듈 3개, 같은 폴더의 `*.test.js`만 만든다. `auth.js`는 FE-2(#8), `sse.js`는 FE-6B(#16)에서 추가한다.
+- FE-1(이슈 #3)에서는 `client.js`(공통 `request` 함수)와 리소스 모듈 3개, 같은 폴더의 `*.test.js`만 만든다. `auth.js`는 FE-2(#8)에서 추가했고, `sse.js`는 FE-6B(#16)에서 추가한다.
 - `src/lib/api/*`가 백엔드 REST 엔드포인트와 1:1로 대응한다(예: `imgagongPlans.js` ↔ `/api/imgagong-plans`).
 - 각 스토어(`*.svelte.js`)는 대응하는 `api/*.js` 모듈만 import한다(2절 의존성 원칙).
 - SSE 구독(실시간 반영)이 필요한 스토어(`imgagongStore.svelte.js`, `masterStore.svelte.js`)는 `api/client.js` 옆에 `api/sse.js` 하나를 추가해 `EventSource` 연결을 공유하는 정도로 충분하다(스토어별로 각자 연결을 열지 않음).
