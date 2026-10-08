@@ -3,6 +3,9 @@
   // (프로젝트에 넣을 때는 보통 src/lib 아래에 두고 "$lib/parseModuleData.js"로 import)
   import { parsePastedModuleData } from '$lib/parseModuleData.js';
   import { onMount } from 'svelte';
+  import DeliverablesPickerModal from '$lib/DeliverablesPickerModal.svelte';
+  import { fetchDeliverableFile } from '$lib/deliverablesStore.svelte.js';
+  import { xlsxToText } from '$lib/xlsxToText.js';
 
   // ------------------------------------------------------------------
   // [코드 위치 안내 1] 선 굵기 조절
@@ -77,6 +80,28 @@
   let imageFileName = $state('chip.png (기본 샘플 이미지)'); // 불러온 이미지 파일명 표시용
 
   // ------------------------------------------------------------------
+  // ------------------------------------------------------------------
+  // "Excel 파일 선택" (FR-MG-02): Deliverables에서 파일을 골라 내려받고,
+  // xlsx → 붙여넣기와 같은 탭 구분 텍스트로 바꿔 pastedText에 넣는다.
+  // 그러면 아래 $effect가 붙여넣기 때와 똑같이 파싱·도면 갱신을 해준다.
+  // ------------------------------------------------------------------
+  let showPicker = $state(false);
+  let fileError = $state('');
+
+  async function handlePick(row) {
+    showPicker = false;
+    // textarea에 이미 데이터가 있으면 덮어쓸지 먼저 묻는다 (취소하면 기존 데이터 유지)
+    if (pastedText.trim() && !confirm('기존 데이터를 덮어쓰시겠습니까?')) return;
+    fileError = '';
+    try {
+      const blob = await fetchDeliverableFile(row);
+      pastedText = xlsxToText(await blob.arrayBuffer());
+    } catch {
+      // 다운로드든 파싱이든 실패하면 textarea는 그대로 두고 안내만 한다
+      fileError = '파일을 불러올 수 없습니다. 나중에 다시 시도하세요';
+    }
+  }
+
   // $effect: 특정 상태(state)가 바뀔 때마다 자동으로 실행되는 코드 블록.
   // React의 useEffect(() => {...}, [pastedText])와 비슷하지만,
   // 의존성 배열을 직접 안 적어도 함수 안에서 읽은 state를 Svelte가
@@ -709,6 +734,13 @@
       placeholder="여기에 Excel에서 복사한 셀 범위를 붙여넣으세요 (Ctrl+V)"
     ></textarea>
 
+    <!-- 붙여넣기 대신 Deliverables에 등록된 엑셀 파일을 불러올 수도 있다 -->
+    <button type="button" class="primary" onclick={() => (showPicker = true)}>📋 Excel 파일 선택</button>
+
+    {#if fileError}
+      <div class="warning-box" role="alert">⚠ {fileError}</div>
+    {/if}
+
     {#if warnings.length > 0}
       <div class="warning-box">
         {#each warnings as w}
@@ -717,6 +749,10 @@
       </div>
     {/if}
   </section>
+
+  {#if showPicker}
+    <DeliverablesPickerModal onselect={handlePick} oncancel={() => (showPicker = false)} />
+  {/if}
 
   <section class="card">
     <div class="card-title">2) 참조 이미지 &amp; 결과</div>

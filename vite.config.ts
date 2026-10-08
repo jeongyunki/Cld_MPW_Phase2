@@ -30,7 +30,8 @@ export default defineConfig({
 				'src/lib/api/**/*.js',
 				'src/lib/imgagongRow.js',
 				'src/lib/masterItem.js',
-				'src/lib/deliverableRow.js'
+				'src/lib/deliverableRow.js',
+				'src/lib/xlsxToText.js'
 			],
 			exclude: ['src/**/*.test.js'],
 			thresholds: { lines: 80, branches: 80, functions: 80 }
