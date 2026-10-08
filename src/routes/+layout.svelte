@@ -8,6 +8,7 @@
   import { goto } from '$app/navigation';
   import { auth, checkSession, logout } from '$lib/authStore.svelte.js';
   import { theme, toggleTheme } from '$lib/theme.svelte.js';
+  import { loadMasterItems } from '$lib/masterStore.svelte.js';
 
   // Svelte 5 + SvelteKit의 최신 방식: 레이아웃 안에 끼워질 페이지 내용은
   // slot이 아니라 $props()로 받은 children을 {@render children()}으로 그린다.
@@ -25,6 +26,17 @@
   // (≈ React의 useEffect(fn, [])). 여기서 auth.*를 읽으면 의존성이 생겨 재실행되니 읽지 말 것.
   $effect(() => {
     checkSession();
+  });
+
+  // 로그인 상태가 되면(앱 시작 시 세션 확인 성공 또는 로그인 직후) Master 항목을 1회 불러온다.
+  // 임가공 Plan만 접속해도 dropdown이 채워지도록 페이지가 아니라 레이아웃에서 부른다.
+  // auth.user가 바뀔 때만 다시 실행된다 (로그아웃 후 재로그인하면 다시 불러옴).
+  $effect(() => {
+    if (!auth.user) return;
+    loadMasterItems().catch((err) => {
+      // 401은 스토어가 로그아웃 처리 → 가드가 /login으로 보내므로 따로 알리지 않는다
+      if (err.status !== 401) alert(`Master 항목을 불러오지 못했습니다: ${err.message}`);
+    });
   });
 
   // redirectTo는 '/'로 시작하고 '//'로 시작하지 않을 때만 허용한다.

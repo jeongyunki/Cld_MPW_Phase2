@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm format` — `prettier --write .`
 - `pnpm test` — Vitest (프론트 `src/lib`의 Svelte 비의존 모듈, 커버리지 80% 미만이면 실패)
 
-프론트 테스트는 `pnpm test`(Vitest, `vite.config.ts`의 `test` 블록 공유, `fetch`는 `vi.stubGlobal`로 가짜로 대체, 현재 대상 `src/lib/api`, `src/lib/imgagongRow.js`)이고, 파일 하나만 돌리려면 `pnpm vitest run src/lib/api/client.test.js`입니다. 백엔드(`server/`)는 `pnpm --filter server test`(node:test + supertest, DB 연결 모듈은 가짜로 대체, 커버리지 80% 미만이면 실패)이고, 파일 하나만 돌리려면 `cd server && node --test test/app.test.js`입니다.
+프론트 테스트는 `pnpm test`(Vitest, `vite.config.ts`의 `test` 블록 공유, `fetch`는 `vi.stubGlobal`로 가짜로 대체, 현재 대상 `src/lib/api`, `src/lib/imgagongRow.js`, `src/lib/masterItem.js`)이고, 파일 하나만 돌리려면 `pnpm vitest run src/lib/api/client.test.js`입니다. 백엔드(`server/`)는 `pnpm --filter server test`(node:test + supertest, DB 연결 모듈은 가짜로 대체, 커버리지 80% 미만이면 실패)이고, 파일 하나만 돌리려면 `cd server && node --test test/app.test.js`입니다.
 
 목 API 서버 (`mockup/`, 별도 스크립트 없음): `cd mockup && node server.js` → `http://localhost:3000/api/*`가 `swagger/swagger.json` 기반 목 응답을, `http://localhost:3000/docs`가 Swagger UI를 제공합니다.
 
@@ -30,7 +30,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "MPW Plus" 사내 도구의 **2차 개발분**입니다. 사내에서 운영 중인 1차 시스템(저장소 밖)에 붙을 기능을 개발하며, 한 저장소 안에 두 애플리케이션이 있습니다.
 
-- **프론트엔드** (루트, `src/`) — SvelteKit (Svelte 5 runes, Tailwind v4, `adapter-auto`). 아직 백엔드와 연동되지 않아 모든 데이터가 브라우저 메모리에만 있습니다(새로고침하면 사라짐). 단, 임가공 Plan(FE-6A)은 서버 연동 완료. 연동은 FE Task에서 스토어 내부를 교체하는 방식으로 진행합니다.
+- **프론트엔드** (루트, `src/`) — SvelteKit (Svelte 5 runes, Tailwind v4, `adapter-auto`). 아직 백엔드와 연동되지 않아 모든 데이터가 브라우저 메모리에만 있습니다(새로고침하면 사라짐). 단, 임가공 Plan(FE-6A)과 Master Page(FE-3)는 서버 연동 완료. 연동은 FE Task에서 스토어 내부를 교체하는 방식으로 진행합니다.
 - **백엔드** (`server/`) — Express 5 + Knex + PostgreSQL(로컬 DB `mpw_plus`). 실행계획의 Task 단위로 구현 중입니다.
 
 진행 상황은 `docs/7-execution-plan.md`의 완료 조건 체크박스와 GitHub 이슈(Stage 1~6, 제목 `[Stage N] <Task ID>: ...`)로 관리합니다. 작업은 이슈마다 `feature-<이슈 번호>` 브랜치 → PR → main merge(`Closes #N`) 순서로 하고, 백엔드 이슈는 `/issue-resolver-backend <이슈 번호>`로 처리합니다.
@@ -50,7 +50,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **공유 상태는 컴포넌트가 아니라 `src/lib/*.svelte.js` 모듈에 둡니다.** `.svelte.js` 확장자 덕분에 컴포넌트 밖에서도 `$state`를 쓸 수 있습니다. 모듈 수준 상태는 페이지 이동 후에도 유지됩니다 (SvelteKit은 이동 시 페이지 컴포넌트를 새로 만들기 때문에, 컴포넌트 내부의 `$state`는 초기화됨).
 
-- `masterStore.svelte.js` — `masterData`(dropdown 항목 목록) + `MASTER_FIELDS` 메타데이터. Master Page가 쓰고, 임가공 Plan이 읽는다. 단, `status` 목록은 Master Page에서 편집할 수 있지만 새 행의 status는 서버가 `'new'`로 고정하므로 새 행에는 반영되지 않는다.
+- `masterStore.svelte.js` — `masterData`(dropdown 항목 목록) + `MASTER_FIELDS` 메타데이터. Master Page가 쓰고, 임가공 Plan이 읽는다. `+layout.svelte`가 로그인 후 `loadMasterItems()`로 서버 `/master-items`를 1회 불러와 채우고(초기값 없음), 삭제용 `id`는 스토어 내부에 따로 둔다. `addMasterItem`/`removeMasterItem`(관리자 전용, 실패 시 throw, 삭제는 영향 행 수 반환)은 서버 호출 성공 후 목록에 반영한다. 응답 변환 순수 함수는 `src/lib/masterItem.js`. 단, `status` 목록은 Master Page에서 편집할 수 있지만 새 행의 status는 서버가 `'new'`로 고정하므로 새 행에는 반영되지 않는다.
 - `imgagongStore.svelte.js` — `imgagongRows`와 `loadRows({ startMonth, endMonth })` / `addRow` / `updateRow(row, field)` / `deleteSelectedRows`. 서버 `/imgagong-plans`를 limit 1000으로 기간 조회하며, 페이지의 `$effect`가 기간 변경 시 재조회하고 마지막 요청만 반영한다. 행은 서버 필드(camelCase) + 화면용 `date`(`createdAt`의 로컬 `YYYY-MM-DD HH:MM`) + `_selected`(UI 전용 체크박스 상태)이다. 셀 change 때 `{필드, version}`을 PATCH하고, 401이면 `clearUser()`를 호출한다. 변환 순수 함수는 `src/lib/imgagongRow.js`.
 - `theme.svelte.js` — 다크/라이트 모드. `+layout.svelte`가 `<html>`에 `light` class를 붙였다 뗀다. 두 팔레트는 레이아웃의 `<style>`에 CSS 변수(`--bg-page` 등)로 정의되어 있다. 테마가 동작하려면 페이지에서 색을 하드코딩하지 말고 `var(--xxx)`를 써야 한다.
 - `authStore.svelte.js` — `auth`(`{ user, checked }`)와 `checkSession` / `login` / `logout` / `clearUser` / `isAdmin`. 화면 이동(`goto`)은 하지 않고, `+layout.svelte`의 가드가 `auth.user`를 보고 `/login`이나 redirectTo로 보낸다. `user.role`로 권한 UI를 분기한다(`isAdmin()`).
