@@ -26,7 +26,12 @@ export default defineConfig({
 		coverage: {
 			provider: 'v8',
 			reporter: ['text'],
-			include: ['src/lib/api/**/*.js', 'src/lib/imgagongRow.js', 'src/lib/masterItem.js'],
+			include: [
+				'src/lib/api/**/*.js',
+				'src/lib/imgagongRow.js',
+				'src/lib/masterItem.js',
+				'src/lib/deliverableRow.js'
+			],
 			exclude: ['src/**/*.test.js'],
 			thresholds: { lines: 80, branches: 80, functions: 80 }
 		}
