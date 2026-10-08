@@ -1,6 +1,7 @@
 <script>
   import { masterData } from '$lib/masterStore.svelte.js';
-  import { imgagongRows, addRow, deleteSelectedRows } from '$lib/imgagongStore.svelte.js';
+  import { imgagongRows, loadRows, addRow, updateRow, deleteSelectedRows } from '$lib/imgagongStore.svelte.js';
+  import { isAdmin } from '$lib/authStore.svelte.js';
 
   // ------------------------------------------------------------------
   // 상단 필터 컨트롤: 조회 기간 (시작 년월 ~ 종료 년월)
@@ -14,33 +15,53 @@
   let startPeriod = $state(`${thisYear}-01`); // "YYYY-MM"
   let endPeriod = $state(`${thisYear}-12`);   // "YYYY-MM"
 
-  // $derived: 다른 state가 바뀌면 자동으로 다시 계산되는 파생 값.
-  // row.date는 "YYYY-MM-DD HH:MM" 형식이라 앞 7글자("YYYY-MM")만 잘라서
-  // startPeriod/endPeriod와 문자열로 그대로 비교한다. "YYYY-MM" 형식은
-  // 자릿수가 고정되어 있어서 문자열 비교가 곧 날짜 크기 비교와 같다.
-  let filteredRows = $derived(
-    imgagongRows.filter((row) => {
-      if (!row.date) return true;
-      const rowPeriod = row.date.slice(0, 7);
-      return rowPeriod >= startPeriod && rowPeriod <= endPeriod;
-    })
-  );
+  // 현재 조회 기간으로 서버에서 다시 불러온다. 실패하면 서버 메시지를 alert로 보여준다.
+  function reload() {
+    loadRows({ startMonth: startPeriod, endMonth: endPeriod }).catch((err) => alert(err.message));
+  }
 
-  function handleDelete() {
+  // $effect: 안에서 읽은 state(startPeriod/endPeriod)가 바뀔 때마다 다시 실행된다
+  // (≈ React의 useEffect(fn, [startPeriod, endPeriod]) — 단, 의존성 배열 없이 자동 추적).
+  // 페이지에 들어올 때도 1회 실행된다.
+  $effect(() => {
+    reload();
+  });
+
+  // 셀 하나가 바뀌면(change 이벤트 — 텍스트는 blur/Enter 때) 그 필드만 저장한다.
+  // oninput(글자마다)이 아니라 onchange를 쓰는 이유: 타이핑할 때마다 서버 요청이 나가는 것을 막기 위해서다.
+  // bind:value가 먼저 row 값을 바꾼 뒤 onchange가 실행되므로 이 시점의 row[field]는 새 값이다.
+  // 실패하면 메시지를 보여주고 재조회로 서버 값을 복원한다.
+  async function saveCell(row, field) {
+    try {
+      await updateRow(row, field);
+    } catch (err) {
+      alert(err.message);
+      reload();
+    }
+  }
+
+  async function handleDelete() {
     const count = imgagongRows.filter((r) => r._selected).length;
     if (count === 0) {
       alert('삭제할 행을 먼저 선택해주세요.');
       return;
     }
-    if (confirm(`선택한 ${count}개 행을 삭제할까요?`)) {
-      deleteSelectedRows();
+    if (confirm(`선택된 ${count}개 행을 삭제하시겠습니까?`)) {
+      try {
+        const errors = await deleteSelectedRows();
+        if (errors.length > 0) {
+          alert(`${count}개 중 ${errors.length}개를 삭제하지 못했습니다: ${errors[0].message}`);
+        }
+      } catch (err) {
+        alert(err.message);
+      }
     }
   }
 
   // ------------------------------------------------------------------
   // "Create" 팝업(모달) — Date/Status를 제외한 나머지 항목을 입력받는다.
-  // 저장을 누르면 addRow()가 Date=지금 시각 / Status='new'를 자동으로 채워서
-  // 목록 맨 위에 새 행을 추가하고, 팝업을 닫는다.
+  // 저장을 누르면 서버가 생성 시각과 status='new'를 채워서 행을 만들고,
+  // 성공하면 팝업을 닫고 목록을 다시 불러온다. 실패하면 팝업을 열어 둔 채 메시지를 보여준다.
   // ------------------------------------------------------------------
   function emptyDraft() {
     return {
@@ -60,17 +81,25 @@
 
   let showCreateModal = $state(false);
   let draft = $state(emptyDraft());
+  let createError = $state('');
 
   function openCreateModal() {
     draft = emptyDraft();
+    createError = '';
     showCreateModal = true;
   }
   function closeCreateModal() {
     showCreateModal = false;
   }
-  function saveCreateModal() {
-    addRow(draft);
-    showCreateModal = false;
+  async function saveCreateModal() {
+    createError = '';
+    try {
+      await addRow(draft);
+      showCreateModal = false;
+      reload();
+    } catch (err) {
+      createError = err.message; // 팝업은 열어 둔다 (시나리오 예외 2-1)
+    }
   }
 </script>
 
@@ -88,12 +117,6 @@
       ~
       <input type="month" bind:value={endPeriod} />
     </label>
-
-    <span class="toolbar-sep"></span>
-
-    <!-- 기능구현은 나중에 할 예정이라고 하셔서 우선 자리만 만들어두고 비활성화해둠 -->
-    <button type="button" class="ghost-btn" disabled title="추후 구현 예정">품의상신</button>
-    <button type="button" class="ghost-btn" disabled title="추후 구현 예정">예산정보</button>
 
     <span class="toolbar-sep"></span>
 
@@ -122,7 +145,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each filteredRows as row (row.id)}
+        {#each imgagongRows as row (row.id)}
           <tr>
             <td class="checkbox-col"><input type="checkbox" bind:checked={row._selected} /></td>
 
@@ -131,45 +154,45 @@
 
             <!-- Status는 계속 진행되며 바뀌는 값이라 다른 항목처럼 편집 가능하게 둠 -->
             <td>
-              <select bind:value={row.status}>
+              <select bind:value={row.status} disabled={!isAdmin()} onchange={() => saveCell(row, 'status')}>
                 <option value="">선택</option>
                 {#each masterData.status as opt}<option value={opt}>{opt}</option>{/each}
               </select>
             </td>
             <td>
-              <select bind:value={row.category}>
+              <select bind:value={row.category} onchange={() => saveCell(row, 'category')}>
                 <option value="">선택</option>
                 {#each masterData.category as opt}<option value={opt}>{opt}</option>{/each}
               </select>
             </td>
             <td>
-              <select bind:value={row.assembler}>
+              <select bind:value={row.assembler} onchange={() => saveCell(row, 'assembler')}>
                 <option value="">선택</option>
                 {#each masterData.assembler as opt}<option value={opt}>{opt}</option>{/each}
               </select>
             </td>
             <td>
-              <select bind:value={row.chipSize}>
+              <select bind:value={row.chipSize} onchange={() => saveCell(row, 'chipSize')}>
                 <option value="">선택</option>
                 {#each masterData.chipSize as opt}<option value={opt}>{opt}</option>{/each}
               </select>
             </td>
 
-            <td><input type="text" bind:value={row.module} /></td>
-            <td><input type="text" bind:value={row.projectName} /></td>
-            <td><input type="text" bind:value={row.gcmCode} /></td>
+            <td><input type="text" bind:value={row.module} onchange={() => saveCell(row, 'module')} /></td>
+            <td><input type="text" bind:value={row.projectName} onchange={() => saveCell(row, 'projectName')} /></td>
+            <td><input type="text" bind:value={row.gcmCode} onchange={() => saveCell(row, 'gcmCode')} /></td>
 
             <td>
-              <select bind:value={row.pkgType}>
+              <select bind:value={row.pkgType} onchange={() => saveCell(row, 'pkgType')}>
                 <option value="">선택</option>
                 {#each masterData.pkgType as opt}<option value={opt}>{opt}</option>{/each}
               </select>
             </td>
 
-            <td><input type="text" bind:value={row.customer} /></td>
-            <td><input type="number" bind:value={row.lotCount} /></td>
-            <td><input type="number" bind:value={row.pkgQty} /></td>
-            <td><input type="text" bind:value={row.owner} /></td>
+            <td><input type="text" bind:value={row.customer} onchange={() => saveCell(row, 'customer')} /></td>
+            <td><input type="number" bind:value={row.lotCount} onchange={() => saveCell(row, 'lotCount')} /></td>
+            <td><input type="number" bind:value={row.pkgQty} onchange={() => saveCell(row, 'pkgQty')} /></td>
+            <td><input type="text" bind:value={row.owner} onchange={() => saveCell(row, 'owner')} /></td>
           </tr>
         {:else}
           <tr>
@@ -182,7 +205,7 @@
 </div>
 
 <!-- ------------------------------------------------------------------
-     Create 팝업(모달). Date/Status는 여기 없다 — addRow()가 자동으로 채우기 때문.
+     Create 팝업(모달). Date/Status는 서버가 채운다.
      ------------------------------------------------------------------ -->
 {#if showCreateModal}
   <div class="modal-backdrop" onclick={closeCreateModal}>
@@ -252,6 +275,8 @@
         </label>
       </div>
 
+      {#if createError}<p class="modal-error" role="alert">⚠ {createError}</p>{/if}
+
       <div class="modal-actions">
         <button type="button" class="ghost-btn2" onclick={closeCreateModal}>취소</button>
         <button type="button" class="primary-btn" onclick={saveCreateModal}>저장</button>
@@ -318,15 +343,6 @@
     width: 1px;
     align-self: stretch;
     background: var(--border);
-  }
-  .ghost-btn {
-    background: transparent;
-    border: 1px solid var(--border-strong);
-    color: var(--text-muted);
-    border-radius: 6px;
-    padding: 7px 14px;
-    font-size: 13px;
-    cursor: not-allowed;
   }
   .primary-btn {
     background: var(--accent-strong);
@@ -405,6 +421,10 @@
     outline: none;
     border-color: var(--accent);
   }
+  td select:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
   .empty-row {
     text-align: center;
     color: var(--text-muted);
@@ -469,6 +489,15 @@
   .modal-field select:focus {
     outline: none;
     border-color: var(--accent);
+  }
+  .modal-error {
+    color: var(--danger-light);
+    background: var(--danger-soft-15);
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin: 0 0 14px;
   }
   .modal-actions {
     display: flex;
