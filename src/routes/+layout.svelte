@@ -67,6 +67,7 @@
   // href는 routes 폴더 구조와 그대로 대응된다 (예: '/mapgen' -> src/routes/mapgen/+page.svelte)
   const menuItems = [
     { href: '/', label: 'Welcome', icon: '🏠' },
+    { href: '/deliverables', label: 'Deliverables', icon: '📁' },
     { href: '/mapgen', label: 'MapGen Web', icon: '🗺️' },
     { href: '/imgagong', label: '임가공 Plan', icon: '📋' },
     { href: '/master', label: 'Master Page', icon: '⚙️' },
