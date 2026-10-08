@@ -2,6 +2,7 @@
 // Jest의 jest.fn()과 같은 vi.fn()으로 fetch를 가짜로 바꿔, 실제 백엔드 없이 요청 내용만 검증한다.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+	bulkConfirmImgagongPlans,
 	createImgagongPlan,
 	deleteImgagongPlan,
 	listImgagongPlans,
@@ -66,6 +67,18 @@ describe('imgagongPlans', () => {
 			credentials: 'include',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ owner: 'kim', version: 3 })
+		});
+	});
+
+	it('bulkConfirmImgagongPlans는 PATCH /imgagong-plans/bulk-confirm 에 { ids } 를 보낸다', async () => {
+		await bulkConfirmImgagongPlans(['id-1', 'id-2']);
+		const [url, init] = fetchMock.mock.calls[0];
+		expect(url).toBe(`${BASE}/imgagong-plans/bulk-confirm`);
+		expect(init).toStrictEqual({
+			method: 'PATCH',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ ids: ['id-1', 'id-2'] })
 		});
 	});
 

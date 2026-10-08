@@ -2,7 +2,14 @@
 // Svelte·fetch에 의존하지 않으므로 가짜(mock) 없이 입력과 출력만 비교한다.
 // 날짜는 TZ를 바꾸지 않고, 로컬 기준 Date를 ISO로 만들어 넣어 어떤 시간대에서도 같은 기대값이 나오게 한다.
 import { describe, expect, it } from 'vitest';
-import { formatDateTime, toCreateBody, toPatchBody, toViewRow } from './imgagongRow.js';
+import {
+	formatDateTime,
+	isInPeriod,
+	mergeRow,
+	toCreateBody,
+	toPatchBody,
+	toViewRow
+} from './imgagongRow.js';
 
 const ISO_R1 = new Date(2026, 0, 5, 9, 7).toISOString();
 
@@ -127,5 +134,80 @@ describe('toPatchBody', () => {
 			module: '',
 			version: 5
 		});
+	});
+});
+
+describe('isInPeriod', () => {
+	const row = { date: '2026-03-15 10:00' };
+
+	it('R15 시작~종료 월 안이면 true (경계 월 포함)', () => {
+		expect(isInPeriod(row, { startMonth: '2026-03', endMonth: '2026-03' })).toBe(true);
+		expect(isInPeriod(row, { startMonth: '2026-01', endMonth: '2026-12' })).toBe(true);
+	});
+
+	it('R16 시작 월 전이거나 종료 월 뒤면 false', () => {
+		expect(isInPeriod(row, { startMonth: '2026-04', endMonth: '2026-12' })).toBe(false);
+		expect(isInPeriod(row, { startMonth: '2026-01', endMonth: '2026-02' })).toBe(false);
+	});
+
+	it('R17 빈 값인 쪽은 경계가 없다', () => {
+		expect(isInPeriod(row, { startMonth: '', endMonth: '' })).toBe(true);
+		expect(isInPeriod(row, { startMonth: '', endMonth: '2026-02' })).toBe(false);
+		expect(isInPeriod(row, { startMonth: undefined, endMonth: '2026-03' })).toBe(true);
+	});
+});
+
+describe('mergeRow', () => {
+	const ALL = { startMonth: '', endMonth: '' };
+	const iso = (day) => new Date(2026, 0, day, 9, 0).toISOString();
+	const plan = (id, day, version = 1, extra = {}) => ({
+		...serverPlan(),
+		id,
+		createdAt: iso(day),
+		version,
+		...extra
+	});
+	// 서버처럼 최신순(createdAt 내림차순) 목록
+	const rowsOf = (...plans) => plans.map(toViewRow);
+
+	it('R18 version이 더 높으면 덮어쓰고 체크 상태는 유지한 채 그 행을 돌려준다', () => {
+		const rows = rowsOf(plan('a', 5));
+		rows[0]._selected = true;
+		const before = rows[0];
+		const result = mergeRow(rows, plan('a', 5, 2, { owner: 'kim' }), ALL);
+		expect(result).toBe(before); // 같은 객체를 고친다 (each 키 유지)
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toMatchObject({ owner: 'kim', version: 2, _selected: true });
+	});
+
+	it('R19 같거나 낮은 version(내 요청의 에코, 늦게 온 옛 이벤트)은 무시하고 null', () => {
+		const rows = rowsOf(plan('a', 5, 3));
+		expect(mergeRow(rows, plan('a', 5, 3, { owner: 'kim' }), ALL)).toBeNull();
+		expect(mergeRow(rows, plan('a', 5, 2, { owner: 'kim' }), ALL)).toBeNull();
+		expect(rows[0].owner).toBe('lee');
+		expect(rows[0].version).toBe(3);
+	});
+
+	it('R20 없는 행은 최신순 자리에 끼워 넣는다 (맨 앞 / 중간 / 맨 뒤)', () => {
+		const rows = rowsOf(plan('d8', 8), plan('d4', 4));
+		mergeRow(rows, plan('d9', 9), ALL);
+		mergeRow(rows, plan('d6', 6), ALL);
+		const last = mergeRow(rows, plan('d1', 1), ALL);
+		expect(rows.map((r) => r.id)).toStrictEqual(['d9', 'd8', 'd6', 'd4', 'd1']);
+		expect(last).toBe(rows[4]);
+		expect(last).toMatchObject({ date: formatDateTime(iso(1)), _selected: false });
+	});
+
+	it('R21 빈 목록에도 넣을 수 있다', () => {
+		const rows = [];
+		mergeRow(rows, plan('a', 5), ALL);
+		expect(rows.map((r) => r.id)).toStrictEqual(['a']);
+	});
+
+	it('R22 조회 기간 밖의 새 행은 추가하지 않고 null', () => {
+		const rows = [];
+		const result = mergeRow(rows, plan('a', 5), { startMonth: '2026-02', endMonth: '2026-12' });
+		expect(result).toBeNull();
+		expect(rows).toHaveLength(0);
 	});
 });
