@@ -42,5 +42,5 @@
 
 - `pnpm dev` / `pnpm start` — `http://localhost:3001/api` (목 서버 3000과 동시 실행 가능)
 - `pnpm test` — 테스트 + 커버리지 검사
-- `npx knex migrate:latest` / `npx knex seed:run` — 스키마 적용 / 초기 데이터(master_items 20행, 관리자 계정)
+- `npx knex migrate:latest` / `npx knex seed:run` — 스키마 적용 / 초기 데이터(master_items 20행, 관리자 계정, `TEST_USER_*`가 있으면 일반 사용자 테스트 계정)
 - 이슈 처리: `/issue-resolver-backend <이슈 번호>`
