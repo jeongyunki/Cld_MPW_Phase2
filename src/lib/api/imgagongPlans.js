@@ -13,3 +13,7 @@ export const updateImgagongPlan = (id, fields) =>
 	request(`/imgagong-plans/${id}`, { method: 'PATCH', body: fields });
 
 export const deleteImgagongPlan = (id) => request(`/imgagong-plans/${id}`, { method: 'DELETE' });
+
+// 관리자 전용 일괄 의뢰 확정 ('checked' 행만 'requested'로). 응답은 { data: [바뀐 행] }
+export const bulkConfirmImgagongPlans = (ids) =>
+	request('/imgagong-plans/bulk-confirm', { method: 'PATCH', body: { ids } });

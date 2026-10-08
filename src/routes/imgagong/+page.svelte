@@ -1,6 +1,16 @@
 <script>
   import { masterData } from '$lib/masterStore.svelte.js';
-  import { imgagongRows, loadRows, addRow, updateRow, deleteSelectedRows } from '$lib/imgagongStore.svelte.js';
+  import { onMount } from 'svelte';
+  import {
+    imgagongRows,
+    connection,
+    loadRows,
+    addRow,
+    updateRow,
+    deleteSelectedRows,
+    confirmSelectedRows,
+    startRealtime,
+  } from '$lib/imgagongStore.svelte.js';
   import { isAdmin } from '$lib/authStore.svelte.js';
 
   // ------------------------------------------------------------------
@@ -27,6 +37,17 @@
     reload();
   });
 
+  // 실시간 공유: 페이지가 열리면 SSE 구독을 시작하고, 떠날 때(컴포넌트 제거) 해제한다.
+  // onMount에서 함수를 return하면 React useEffect의 cleanup처럼 제거 시점에 실행된다.
+  onMount(() => startRealtime());
+
+  // 낙관적 잠금 충돌(409) 안내. [새로고침]을 누르면 서버의 최신 값으로 다시 불러온다 (와이어프레임 2.2절)
+  let conflictMessage = $state('');
+  function refreshAfterConflict() {
+    conflictMessage = '';
+    reload();
+  }
+
   // 셀 하나가 바뀌면(change 이벤트 — 텍스트는 blur/Enter 때) 그 필드만 저장한다.
   // oninput(글자마다)이 아니라 onchange를 쓰는 이유: 타이핑할 때마다 서버 요청이 나가는 것을 막기 위해서다.
   // bind:value가 먼저 row 값을 바꾼 뒤 onchange가 실행되므로 이 시점의 row[field]는 새 값이다.
@@ -35,6 +56,11 @@
     try {
       await updateRow(row, field);
     } catch (err) {
+      if (err.status === 409) {
+        // 다른 사용자가 먼저 저장했다. 내가 입력한 값은 [새로고침] 때 서버 값으로 되돌아간다.
+        conflictMessage = err.message;
+        return;
+      }
       alert(err.message);
       reload();
     }
@@ -55,6 +81,33 @@
       } catch (err) {
         alert(err.message);
       }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // "의뢰 확정" (관리자 전용) — 체크된 행 중 'checked' 상태인 행만 서버가 'requested'로 바꾼다.
+  // ------------------------------------------------------------------
+  // $derived: 체크박스가 바뀔 때마다 자동으로 다시 세어진다 (≈ React의 useMemo)
+  const selectedCount = $derived(imgagongRows.filter((r) => r._selected).length);
+
+  async function handleConfirm() {
+    const count = selectedCount;
+    if (count === 0) {
+      alert('의뢰 확정할 행을 먼저 선택해주세요.');
+      return;
+    }
+    if (!confirm(`선택된 ${count}개 항목을 의뢰 확정하시겠습니까?`)) return;
+    try {
+      const confirmed = await confirmSelectedRows();
+      if (confirmed === count) {
+        alert('의뢰가 확정되었습니다');
+      } else if (confirmed === 0) {
+        alert("의뢰 확정된 항목이 없습니다. 'checked' 상태인 행만 의뢰 확정할 수 있습니다.");
+      } else {
+        alert(`의뢰가 확정되었습니다 (${count}개 중 ${confirmed}개 — 'checked' 상태인 행만 확정됩니다)`);
+      }
+    } catch (err) {
+      alert(err.message);
     }
   }
 
@@ -124,6 +177,25 @@
     <button type="button" class="danger-btn" onclick={handleDelete}>Delete</button>
   </div>
 
+  <div class="confirm-bar">
+    <!-- 관리자가 아니면 비활성화 (최종 권한 검사는 서버의 403) -->
+    <button type="button" class="primary-btn" disabled={!isAdmin()} onclick={handleConfirm}>의뢰 확정</button>
+    <span class="selected-count">선택됨: {selectedCount}개 항목</span>
+
+    {#if connection.status === 'reconnecting' || connection.status === 'closed'}
+      <span class="conn-notice conn-lost">연결이 끊어졌습니다. 재연결을 시도 중입니다...</span>
+    {:else if connection.status === 'recovered'}
+      <span class="conn-notice conn-ok">연결이 복구되었습니다</span>
+    {/if}
+  </div>
+
+  {#if conflictMessage}
+    <div class="conflict-box" role="alert">
+      <span>⚠ {conflictMessage}</span>
+      <button type="button" class="ghost-btn2" onclick={refreshAfterConflict}>새로고침</button>
+    </div>
+  {/if}
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -146,7 +218,8 @@
       </thead>
       <tbody>
         {#each imgagongRows as row (row.id)}
-          <tr>
+          <!-- _remote: 다른 사용자가 방금 추가/수정한 행 (다음 목록 조회 때까지 강조) -->
+          <tr class:remote-row={row._remote}>
             <td class="checkbox-col"><input type="checkbox" bind:checked={row._selected} /></td>
 
             <!-- Date는 생성 시각으로 고정, 수정 불가 (읽기 전용 텍스트로만 표시) -->
@@ -357,6 +430,11 @@
   .primary-btn:hover {
     background: var(--accent);
   }
+  .primary-btn:disabled {
+    background: var(--border-strong);
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
   .danger-btn {
     background: transparent;
     border: 1px solid var(--danger);
@@ -368,6 +446,47 @@
   }
   .danger-btn:hover {
     background: var(--danger-soft-15);
+  }
+
+  .confirm-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .selected-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .conn-notice {
+    font-size: 13px;
+    margin-left: auto;
+  }
+  .conn-lost {
+    color: var(--danger-light);
+  }
+  .conn-ok {
+    color: var(--accent);
+  }
+  .conflict-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--danger-light);
+    background: var(--danger-soft-15);
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .remote-row td {
+    background: var(--bg-panel-soft);
+  }
+  .remote-row td:first-child {
+    box-shadow: inset 3px 0 0 var(--accent);
   }
 
   /* 이 wrapper 자체는 폭 제한이 없어서 main-area(사이드바 제외 전체 폭)를 그대로 채우고,
