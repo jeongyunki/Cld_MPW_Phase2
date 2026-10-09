@@ -33,7 +33,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **프론트엔드** (루트, `src/`) — SvelteKit (Svelte 5 runes, Tailwind v4, `adapter-auto`). 모든 화면이 백엔드와 연동되어 데이터는 서버 DB·파일 저장소에 영속됩니다(새로고침해도 유지). 화면은 스토어(`*.svelte.js`) → `src/lib/api/*.js`로만 서버를 부릅니다.
 - **백엔드** (`server/`) — Express 5 + Knex + PostgreSQL(로컬 DB `mpw_plus`). 실행계획의 BE Task가 모두 구현되었습니다.
 
-실행계획(`docs/7-execution-plan.md`)의 Task(DB-1~4, BE-1~7, FE-1~7)는 모두 완료되었고, 통합 점검(BE-7, FE-7)과 그 발견 사항(#36~#38)까지 처리됐습니다. 남은 것은 운영 준비 단계의 과제입니다: 배포 방식(현재 로컬 실행만), SheetJS `xlsx@0.18.5` 취약점 버전 교체 검토, 임가공 Plan 필수 필드의 업무 확인(`docs/7` "발견된 이슈"), 1차 시스템 인증 연동(`server/src/middleware/auth.js` 교체), 저장소 전체 `pnpm lint` 정비, CI.
+실행계획(`docs/7-execution-plan.md`)의 Task(DB-1~4, BE-1~7, FE-1~7)는 모두 완료되었고, 통합 점검(BE-7, FE-7)과 그 발견 사항(#36~#38)까지 처리됐습니다. 남은 것은 운영 준비 단계의 과제입니다: 배포 방식(현재 로컬 실행만), 임가공 Plan 필수 필드의 업무 확인(`docs/7` "발견된 이슈"), 1차 시스템 인증 연동(`server/src/middleware/auth.js` 교체), 저장소 전체 `pnpm lint` 정비, CI.
 
 진행 상황은 `docs/7-execution-plan.md`의 완료 조건 체크박스와 GitHub 이슈(Stage 1~6, 제목 `[Stage N] <Task ID>: ...`)로 관리합니다. 작업은 이슈마다 `feature-<이슈 번호>` 브랜치 → PR → main merge(`Closes #N`) 순서로 하고, 백엔드 이슈는 `/issue-resolver-backend <이슈 번호>`로 처리합니다.
 
@@ -84,4 +84,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm lint`는 현재 전체 저장소 기준으로 통과하지 않습니다(기존 문제, 별도 처리 전). prettier는 기존 포맷 파일과 CRLF 때문에 다수 파일에서 경고를 내고, eslint는 CommonJS인 `server/`·`mockup/`에 `@typescript-eslint/no-require-imports`, 기존 프론트 파일에 `svelte/require-each-key` 등을 냅니다. 작업할 때는 **새로 만들거나 수정한 파일에 한해** `npx prettier --check <파일>`을 통과시키고, eslint는 `no-require-imports` 외의 새 위반이 없는지 확인합니다.
 - 이 PC는 git `core.autocrlf=true`라 체크아웃된 파일이 CRLF일 수 있고, 그 경우 `prettier --check`가 경고를 냅니다. 커밋되는 내용은 LF이므로 `git diff`로 실제 변경이 없으면 무시해도 됩니다.
 - `static/`은 prettier 대상에서 제외됩니다. MapGen은 기본으로 `/sample/chip.png`(즉 `static/sample/chip.png`)를 사용하는데, 이 파일은 커밋되어 있지 않습니다 — 사용자가 이미지를 선택하거나, 이미지가 붙은 Excel 파일을 "Excel 파일 선택"으로 불러오거나, 이 파일을 추가하기 전까지 canvas는 비어 있습니다.
-- SheetJS는 npm 레지스트리 `xlsx@0.18.5`(알려진 취약점 있음, 사내 업로드 파일만 읽는다는 전제로 선택)입니다. 셀 값은 `read`/`utils`로 읽고, 이미지는 SheetJS가 주지 않으므로 같은 패키지의 zip 리더 `CFB`로 xlsx 내부 XML을 따라가 꺼냅니다. SSR(Node)에서는 `xlsx`가 CommonJS로 로드되어 `import { CFB } from 'xlsx'`가 잡히지 않으므로 `vite.config.ts`에 `ssr.noExternal: ['xlsx']`를 두었습니다(지우면 `/mapgen`이 500).
+- SheetJS는 **SheetJS CDN의 `xlsx@0.20.3`**입니다(`package.json`에 tarball URL `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`, lockfile에 integrity 해시 기록). npm 레지스트리의 `xlsx`는 0.18.5에서 멈춰 있고 알려진 취약점(prototype pollution, ReDoS)이 있으므로 `pnpm add xlsx`로 다시 설치하지 마세요. 버전을 올릴 때는 `pnpm add -w https://cdn.sheetjs.com/xlsx-<버전>/xlsx-<버전>.tgz`처럼 버전이 고정된 주소를 씁니다(`xlsx-latest`는 내용이 바뀔 수 있어 쓰지 않음). 셀 값은 `read`/`utils`로 읽고, 이미지는 SheetJS가 주지 않으므로 같은 패키지의 zip 리더 `CFB`로 xlsx 내부 XML을 따라가 꺼냅니다. 0.20.3은 `exports`로 Node(SSR)에도 ESM 판을 주므로 `import { CFB } from 'xlsx'`가 그대로 동작합니다(0.18.5 때 필요했던 `ssr.noExternal`은 제거).

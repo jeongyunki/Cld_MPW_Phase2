@@ -346,6 +346,8 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 
 > 추가(FE-7 점검 중, 2026-10-09): Claude in Chrome으로 실제 브라우저에서 팝업 → 덮어쓰기 확인(취소/확인) → textarea 입력 → canvas 도면까지 확인했다. 사용자 요청으로 첫 시트 이미지 표시를 추가했다(`src/lib/xlsxImage.js` — SheetJS의 zip 리더 `CFB`로 `workbook.xml → 첫 시트 → drawing → media`를 따라감, 단위 테스트 9개). 사용자 샘플(첫 시트에 jpg)로 이미지 표시를, 이미지 없는 파일로 경고 표시를, 이후 이미지 직접 선택·이미지 있는 엑셀 재선택 시 복귀를 브라우저에서 확인했다. 이 과정에서 SSR에서 `xlsx`가 CommonJS로 로드되어 `/mapgen`이 500을 내는 문제를 발견해 `vite.config.ts`에 `ssr.noExternal: ['xlsx']`를 추가했다(`pnpm build` 통과).
 
+> 추가(운영 준비, 2026-10-09): SheetJS를 npm 레지스트리 `xlsx@0.18.5`(취약점 있음)에서 SheetJS CDN의 `xlsx@0.20.3`(버전 고정 tarball, lockfile integrity 기록)으로 교체했다. 0.20.3은 Node(SSR)에도 ESM 판을 주므로 `ssr.noExternal`을 제거했다(임시 Vite 서버로 `/mapgen` SSR 200 확인). 사용자 샘플 기반 엑셀 5건의 변환 결과(줄 수·module 수·첫 시트 이미지)가 교체 전과 동일했고, `pnpm test`(99)·`pnpm check`·`pnpm build` 통과.
+
 **의존성**: FE-4(Deliverables 목록/다운로드 재사용) / BE-4(신규 API 없음, 기존 재사용). xlsx 파싱 라이브러리 도입은 프론트 전용이라 백엔드 의존 없이 병렬 개발 가능(E2E 검증만 FE-4 이후)
 
 **참고 근거**: PRD 3.2절(FR-MG-02), 도메인정의서 6절, 사용자시나리오 2절(시나리오 1, 예외 1-4/1-5), `src/lib/parseModuleData.js`(직접 확인)
