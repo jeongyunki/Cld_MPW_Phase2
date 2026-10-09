@@ -291,7 +291,9 @@
 
 ### 3.1 Master Page (`/master`)
 
-화면 UI는 `src/routes/master/+page.svelte` 그대로 유지된다(필드별 섹션 + chip 목록 + "새 항목 입력 후 Enter" 추가 폼). 내부 구현만 `masterStore.svelte.js`에서 백엔드 fetch로 교체되고(FE-3), 관리자가 아닌 사용자에게는 "추가"/삭제(×) 버튼이 비활성화되거나 클릭 시 권한 에러가 표시된다(PRD 3.4절, FE-3 완료조건, 사용자시나리오 4절 예외 3-3).
+화면 UI는 `src/routes/master/+page.svelte` 그대로 유지된다(필드별 섹션 + chip 목록 + "새 항목 입력 후 Enter" 추가 폼). 내부 구현만 `masterStore.svelte.js`에서 백엔드 fetch로 교체된다(FE-3). **관리자 전용 화면**이라, 관리자가 아닌 사용자에게는 사이드바 "Master Page" 메뉴와 Welcome 카드가 보이지 않고 `/master`로 직접 들어와도 Welcome으로 이동한다(PRD 3.4절, 사용자시나리오 4절 예외 3-3 옵션 A, #37).
+
+모든 화면의 브라우저 탭 제목은 사이드바 메뉴 이름과 같다("Welcome", "Deliverables", "MapGen Web", "임가공 Plan", "Master Page", 로그인 화면은 "로그인", #38).
 
 ### 3.2 Welcome (`/`)
 

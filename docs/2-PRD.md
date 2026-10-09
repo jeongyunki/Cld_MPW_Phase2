@@ -165,6 +165,8 @@
 
 **목적**: 임가공 Plan과 Deliverables Page에서 사용하는 dropdown 항목(Status, 구분, 조립처, Chip size, PKG Type)을 중앙에서 관리
 
+**접근 권한**: Master Page는 **MPW 관리자 전용 화면**이다. 일반 사용자에게는 사이드바 메뉴와 Welcome 카드가 보이지 않고, 주소(`/master`)로 직접 들어와도 Welcome 화면으로 이동한다. 일반 사용자는 임가공 Plan의 dropdown으로 Master 항목을 사용하기만 한다(조회 API `GET /master-items`는 모든 로그인 사용자에게 열려 있음). 추가/삭제 API는 서버에서도 관리자만 허용(403).
+
 **FR-MS-01: Master 항목 추가 (Create)**
 - 사용자 스토리: "MPW 관리자로서, 새로운 조립처 또는 PKG Type을 Master에 추가하고 전체 사용자에게 즉시 반영하고 싶다"
 - 입력: 필드명(Status/구분/조립처/Chip size/PKG Type), 항목명
@@ -174,7 +176,7 @@
   - 추가 후 즉시 다른 사용자의 dropdown에도 반영
 
 **FR-MS-02: Master 항목 조회 (Read)**
-- 현재 등록된 모든 Master 항목을 필드별로 표 또는 목록 형태로 표시
+- 현재 등록된 모든 Master 항목을 필드별로 표 또는 목록 형태로 표시 (Master Page 화면은 관리자만, 항목 값 자체는 모든 사용자의 dropdown에 사용)
 
 **FR-MS-03: Master 항목 삭제 (Delete)**
 - 사용자 스토리: "MPW 관리자로서, 사용하지 않는 조립처를 Master에서 제거하고 싶다"
@@ -489,7 +491,7 @@
 ### 페르소나 정의 단계에서 다룰 사항
 - 각 사용자 그룹(기획팀, 설계팀, 기술팀, 제조팀, 품질팀, MPW 관리자)의 구체적 페르소나 작성
 - 각 페르소나의 MapGen/임가공 Plan 사용 패턴 상세화
-- Master Page 접근 권한: "MPW 관리자"가 실제로 몇 명이고 어떤 조직 소속인지 구체적 정의 필요 (Master Page 수정 권한 = MPW 관리자로 통일하기로 결정됨, 5절 참조)
+- Master Page 접근 권한: "MPW 관리자"가 실제로 몇 명이고 어떤 조직 소속인지 구체적 정의 필요 (Master Page 수정 권한 = MPW 관리자로 통일하기로 결정됨, 5절 참조. 화면 자체도 관리자 전용으로 결정 — 3.4절)
 
 ### ERD 설계 단계에서 다룰 사항
 - 정확한 테이블 스키마 설계
