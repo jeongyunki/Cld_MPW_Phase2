@@ -77,7 +77,7 @@ routes (요청 매핑)  →  controllers (요청/응답 처리)  →  services (
 | SvelteKit 라우트 파일 | SvelteKit 고정 규칙 (`+page.svelte`, `+layout.svelte`) | `src/routes/deliverables/+page.svelte` | 기존 관례 그대로 |
 | 프론트 공유 상태 모듈 | camelCase + `.svelte.js` | `deliverablesStore.svelte.js` | 기존 `masterStore.svelte.js`, `imgagongStore.svelte.js`와 동일 패턴 |
 | 프론트 API 클라이언트 모듈 | camelCase + `.js`, 리소스명 그대로 | `src/lib/api/deliverables.js` | 스토어와 이름을 맞춰 "어떤 스토어가 어떤 클라이언트를 쓰는지" 바로 알 수 있게 함 |
-| 재사용 Svelte 컴포넌트(팝업 등) | PascalCase | `DeliverablesPickerModal.svelte` | 현재 저장소엔 아직 없지만, Svelte 생태계 표준 관례. 라우트 전용 `+page.svelte`와 구분하기 위함 |
+| 재사용 Svelte 컴포넌트(팝업 등) | PascalCase | `DeliverablesPickerModal.svelte` | Svelte 생태계 표준 관례(FE-5에서 `src/lib/DeliverablesPickerModal.svelte`로 추가됨). 라우트 전용 `+page.svelte`와 구분하기 위함 |
 | JS 변수/함수명 (프론트/백엔드 공통) | camelCase | `addRow`, `fetchImgagongRows` | 기존 코드와 동일 |
 | 백엔드 계층별 파일명 | kebab-case + 계층 접미사 | `imgagong-plans.routes.js`, `imgagong-plans.service.js` | 파일명만 보고 계층을 알 수 있게 함. Express 생태계에서 흔한 관례 |
 | REST 엔드포인트(리소스 경로) | 복수형 명사, kebab-case | `/api/imgagong-plans`, `/api/master-items` | PRD 3.5절에 이미 정의된 경로를 그대로 따름 |
@@ -87,7 +87,7 @@ routes (요청 매핑)  →  controllers (요청/응답 처리)  →  services (
 | 공통 컬럼 | `id`(PK), `created_at`, `updated_at`, `version`(낙관적 잠금용) | - | PRD 4.2절 낙관적 잠금, 시나리오 문서의 "수정일시/수정자" 요구를 일관되게 반영 |
 | 환경변수 | SCREAMING_SNAKE_CASE | `DATABASE_URL`, `UPLOAD_DIR` | Node.js/dotenv 관례 |
 
-*근거*: 프론트는 기존 파일이 이미 camelCase + `.svelte.js`로 자리잡았으므로 그대로 확장한다. 백엔드는 아직 코드가 없어 새로 정하지만, "파일명만 보고 계층/역할을 유추할 수 있게"가 유일한 목표이며 그 이상의 규칙(예: 계층별 전용 접두사 인터페이스 네이밍 등)은 두지 않는다. DB는 PostgreSQL 관례(snake_case)를 따르고 JS 쪽 camelCase와의 변환은 DB 접근 계층 한 곳에서만 처리해, 위/아래 계층이 서로 다른 네이밍 스타일에 신경 쓰지 않게 한다.
+*근거*: 프론트는 기존 파일이 이미 camelCase + `.svelte.js`로 자리잡았으므로 그대로 확장한다. 백엔드는 (작성 당시) 아직 코드가 없어 새로 정했지만, "파일명만 보고 계층/역할을 유추할 수 있게"가 유일한 목표이며 그 이상의 규칙(예: 계층별 전용 접두사 인터페이스 네이밍 등)은 두지 않는다. DB는 PostgreSQL 관례(snake_case)를 따르고 JS 쪽 camelCase와의 변환은 DB 접근 계층 한 곳에서만 처리해, 위/아래 계층이 서로 다른 네이밍 스타일에 신경 쓰지 않게 한다.
 
 ---
 
@@ -148,23 +148,23 @@ routes (요청 매핑)  →  controllers (요청/응답 처리)  →  services (
 ```
 src/
 ├── routes/
-│   ├── +layout.svelte          # 기존 — menuItems에 Deliverables 메뉴 추가 필요
+│   ├── +layout.svelte          # 기존 — menuItems에 Deliverables 추가, 인증 가드, Master는 adminOnly(관리자 전용), 탭 제목
 │   ├── +page.svelte            # 기존 (Welcome)
 │   ├── login/                   # 신규 (FE-2) — 사이드바 없는 전체 화면, menuItems 미등록
 │   │   └── +page.svelte
 │   ├── mapgen/
 │   │   └── +page.svelte        # 기존 — FR-MG-02(파일 선택 팝업 + 첫 시트 이미지 표시) 추가 (FE-5)
 │   ├── imgagong/
-│   │   └── +page.svelte        # 기존 — 백엔드 연동으로 내부만 교체
+│   │   └── +page.svelte        # 기존 — 백엔드 연동(FE-6A) + 실시간 공유·충돌 안내·의뢰 확정(FE-6B)
 │   ├── master/
-│   │   └── +page.svelte        # 기존 — 백엔드 연동으로 내부만 교체
+│   │   └── +page.svelte        # 기존 — 백엔드 연동(FE-3), 관리자 전용 화면(#37)
 │   └── deliverables/            # 신규 라우트 (도메인정의서/PRD 신규 기능)
 │       └── +page.svelte
 │
 └── lib/
     ├── assets/                  # 기존
-    ├── masterStore.svelte.js    # 기존 — 내부 구현만 fetch로 교체
-    ├── imgagongStore.svelte.js  # 기존 — 내부 구현만 fetch로 교체
+    ├── masterStore.svelte.js    # 기존 — 내부 구현만 fetch로 교체 (FE-3)
+    ├── imgagongStore.svelte.js  # 기존 — 내부 구현만 fetch로 교체 (FE-6A) + SSE 구독 (FE-6B)
     ├── deliverablesStore.svelte.js  # 신규 — 위 두 스토어와 동일 패턴
     ├── authStore.svelte.js      # 신규 (FE-2) — 로그인 사용자(auth.user, role)와 세션 확인 여부
     ├── theme.svelte.js          # 기존, 변경 없음
@@ -177,13 +177,14 @@ src/
         ├── auth.js              # 신규 (FE-2) — /auth/login·logout·me
         ├── deliverables.js
         ├── imgagongPlans.js
-        └── masterItems.js
+        ├── masterItems.js
+        └── sse.js               # 신규 (FE-6B) — 임가공 Plan SSE 스트림, EventSource 하나를 공유
 ```
 
-- FE-1(이슈 #3)에서는 `client.js`(공통 `request` 함수)와 리소스 모듈 3개, 같은 폴더의 `*.test.js`만 만든다. `auth.js`는 FE-2(#8)에서 추가했고, `sse.js`는 FE-6B(#16)에서 추가한다.
+- FE-1(이슈 #3)에서는 `client.js`(공통 `request` 함수)와 리소스 모듈 3개, 같은 폴더의 `*.test.js`만 만든다. `auth.js`는 FE-2(#8)에서, `sse.js`는 FE-6B(#16)에서 추가했다.
 - `src/lib/api/*`가 백엔드 REST 엔드포인트와 1:1로 대응한다(예: `imgagongPlans.js` ↔ `/api/imgagong-plans`).
 - 각 스토어(`*.svelte.js`)는 대응하는 `api/*.js` 모듈만 import한다(2절 의존성 원칙).
-- SSE 구독(실시간 반영)이 필요한 스토어(`imgagongStore.svelte.js`, `masterStore.svelte.js`)는 `api/client.js` 옆에 `api/sse.js` 하나를 추가해 `EventSource` 연결을 공유하는 정도로 충분하다(스토어별로 각자 연결을 열지 않음).
+- SSE 구독(실시간 반영)은 `api/client.js` 옆의 `api/sse.js` 하나가 `EventSource` 연결을 공유한다(스토어별로 각자 연결을 열지 않음). 백엔드 스트림은 임가공 Plan(`/imgagong-plans/stream`)만 있어 현재 구독하는 스토어는 `imgagongStore.svelte.js` 하나다(Master 변경은 다른 탭에서 새로고침 시 반영).
 
 *근거*: 기존 라우트/스토어 구조를 그대로 두어 CLAUDE.md의 아키텍처 설명과 충돌하지 않게 했다. `lib/api`만 새로 추가해 "스토어는 상태 관리, api는 통신"이라는 책임을 분리했다.
 
@@ -251,4 +252,4 @@ server/
 - `lib/sse.js`는 PRD 6절의 "Node 단일 프로세스 + SSE" 결정을 그대로 반영한 것으로, 커넥션을 메모리 배열/맵으로 관리하는 단일 모듈이다. 나중에 Redis pub/sub이 필요해지면 이 파일 내부만 교체한다.
 - 리소스별 폴더 구조는 "기능(도메인) 단위 묶음"이며, `routes/`, `controllers/`, `services/` 같은 계층별 최상위 폴더로 전체를 나누지 않는다 — 리소스 3~4개뿐인 지금 규모에서는 계층별로 폴더를 나누면 관련 파일이 여러 폴더에 흩어져 오히려 찾기 어렵다.
 
-*근거*: 백엔드는 아직 코드가 없으므로 자유롭게 제안했지만, 2절의 레이어 원칙(라우트→컨트롤러→서비스→DB 접근, 역방향 의존 금지)을 그대로 지키는 가장 단순한 배치를 택했다. 리소스 3개(Deliverables/임가공Plan/Master) + 인증/업로드/SSE라는 적은 모듈 수를 고려하면, 계층별 전역 폴더보다 리소스별 폴더가 더 예측 가능하고 파일 수도 적다.
+*근거*: 백엔드는 (작성 당시) 아직 코드가 없었으므로 자유롭게 제안했지만, 2절의 레이어 원칙(라우트→컨트롤러→서비스→DB 접근, 역방향 의존 금지)을 그대로 지키는 가장 단순한 배치를 택했다. 리소스 3개(Deliverables/임가공Plan/Master) + 인증/업로드/SSE라는 적은 모듈 수를 고려하면, 계층별 전역 폴더보다 리소스별 폴더가 더 예측 가능하고 파일 수도 적다.
