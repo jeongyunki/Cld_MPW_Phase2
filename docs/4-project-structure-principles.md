@@ -153,7 +153,7 @@ src/
 │   ├── login/                   # 신규 (FE-2) — 사이드바 없는 전체 화면, menuItems 미등록
 │   │   └── +page.svelte
 │   ├── mapgen/
-│   │   └── +page.svelte        # 기존 — FR-MG-02(파일 선택 팝업) 추가 예정
+│   │   └── +page.svelte        # 기존 — FR-MG-02(파일 선택 팝업 + 첫 시트 이미지 표시) 추가 (FE-5)
 │   ├── imgagong/
 │   │   └── +page.svelte        # 기존 — 백엔드 연동으로 내부만 교체
 │   ├── master/
@@ -169,6 +169,9 @@ src/
     ├── authStore.svelte.js      # 신규 (FE-2) — 로그인 사용자(auth.user, role)와 세션 확인 여부
     ├── theme.svelte.js          # 기존, 변경 없음
     ├── parseModuleData.js       # 기존, 변경 없음 (순수 로직)
+    ├── DeliverablesPickerModal.svelte  # 신규 (FE-5) — MapGen의 Deliverables 선택 팝업
+    ├── xlsxToText.js            # 신규 (FE-5) — xlsx 첫 시트 → 탭 구분 텍스트 (순수 로직)
+    ├── xlsxImage.js             # 신규 (FE-5) — xlsx 첫 시트의 첫 이미지 추출 (순수 로직)
     └── api/                     # 신규 — API 클라이언트 계층 (2절 참고)
         ├── client.js            # fetch 공통 래퍼 (base URL, 에러 처리 등 최소 공통 로직만)
         ├── auth.js              # 신규 (FE-2) — /auth/login·logout·me

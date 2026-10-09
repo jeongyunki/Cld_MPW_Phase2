@@ -6,6 +6,7 @@
   import DeliverablesPickerModal from '$lib/DeliverablesPickerModal.svelte';
   import { fetchDeliverableFile } from '$lib/deliverablesStore.svelte.js';
   import { xlsxToText } from '$lib/xlsxToText.js';
+  import { extractFirstSheetImage } from '$lib/xlsxImage.js';
 
   // ------------------------------------------------------------------
   // [코드 위치 안내 1] 선 굵기 조절
@@ -78,12 +79,14 @@
   // static 폴더에 넣은 파일은 경로 그대로 URL이 되므로 "/sample/chip.png"로 접근 가능.
   let imageUrl = $state('/sample/chip.png'); // 사용자가 불러온 로컬 이미지의 미리보기 URL
   let imageFileName = $state('chip.png (기본 샘플 이미지)'); // 불러온 이미지 파일명 표시용
+  let imageError = $state(''); // Excel 파일에 이미지가 없을 때 이미지 영역에 보여줄 안내
 
   // ------------------------------------------------------------------
   // ------------------------------------------------------------------
   // "Excel 파일 선택" (FR-MG-02): Deliverables에서 파일을 골라 내려받고,
   // xlsx → 붙여넣기와 같은 탭 구분 텍스트로 바꿔 pastedText에 넣는다.
   // 그러면 아래 $effect가 붙여넣기 때와 똑같이 파싱·도면 갱신을 해준다.
+  // 첫 번째 시트에 붙은 이미지는 "2) 참조 이미지" 영역의 이미지로 쓴다.
   // ------------------------------------------------------------------
   let showPicker = $state(false);
   let fileError = $state('');
@@ -94,12 +97,28 @@
     if (pastedText.trim() && !confirm('기존 데이터를 덮어쓰시겠습니까?')) return;
     fileError = '';
     try {
-      const blob = await fetchDeliverableFile(row);
-      pastedText = xlsxToText(await blob.arrayBuffer());
+      const data = await (await fetchDeliverableFile(row)).arrayBuffer();
+      pastedText = xlsxToText(data);
+      showExcelImage(extractFirstSheetImage(data), row.originalFileName);
     } catch {
       // 다운로드든 파싱이든 실패하면 textarea는 그대로 두고 안내만 한다
       fileError = '파일을 불러올 수 없습니다. 나중에 다시 시도하세요';
     }
+  }
+
+  // Excel에서 꺼낸 이미지를 참조 이미지로 바꾼다. 이미지가 없으면 이전 이미지를 지우고 안내만 남긴다
+  // (다른 파일의 이미지 위에 이 파일의 도면이 그려지는 혼동을 막기 위해).
+  function showExcelImage(image, excelName) {
+    if (imageUrl.startsWith('blob:')) URL.revokeObjectURL(imageUrl);
+    if (!image) {
+      imageUrl = '';
+      imageFileName = '';
+      imageError = 'image가 없으니 excel 파일을 다시 확인하세요.';
+      return;
+    }
+    imageUrl = URL.createObjectURL(new Blob([image.bytes], { type: image.mimeType }));
+    imageFileName = `${image.name} (${excelName}의 첫 번째 시트 이미지)`;
+    imageError = '';
   }
 
   // $effect: 특정 상태(state)가 바뀔 때마다 자동으로 실행되는 코드 블록.
@@ -154,6 +173,7 @@
     if (!file) return;
 
     imageFileName = file.name;
+    imageError = '';
 
     // 이전 이미지가 static 폴더의 고정 경로(/sample/...)가 아니라
     // 사용자가 직접 선택해서 만들어진 임시 URL(blob:...)일 때만 해제한다.
@@ -805,8 +825,12 @@
     </div>
 
     <div class="canvas-wrap">
+      <!-- Excel 파일에 이미지가 없을 때: canvas 대신 안내를 보여준다 -->
+      {#if imageError}
+        <div class="warning-box image-error" role="alert">⚠ {imageError}</div>
+      {/if}
       <!-- canvas-stage: canvas와 드래그 손잡이 overlay를 같은 좌표계로 겹치기 위한 래퍼 -->
-      <div class="canvas-stage">
+      <div class="canvas-stage" class:hidden={imageError}>
         <canvas bind:this={canvasEl}></canvas>
 
         {#if editMode}
@@ -1011,6 +1035,15 @@
   }
   button.primary:hover {
     background: var(--accent);
+  }
+  .warning-box.image-error {
+    margin: 0;
+    padding: 40px 20px;
+    text-align: center;
+    font-size: 14px;
+  }
+  .canvas-stage.hidden {
+    display: none;
   }
   .warning-box {
     margin-top: 12px;

@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm format` — `prettier --write .`
 - `pnpm test` — Vitest (프론트 `src/lib`의 Svelte 비의존 모듈, 커버리지 80% 미만이면 실패)
 
-프론트 테스트는 `pnpm test`(Vitest, `vite.config.ts`의 `test` 블록 공유, `fetch`는 `vi.stubGlobal`로 가짜로 대체, 현재 대상 `src/lib/api`, `src/lib/imgagongRow.js`, `src/lib/masterItem.js`)이고, 파일 하나만 돌리려면 `pnpm vitest run src/lib/api/client.test.js`입니다. 백엔드(`server/`)는 `pnpm --filter server test`(node:test + supertest, DB 연결 모듈은 가짜로 대체, 커버리지 80% 미만이면 실패)이고, 파일 하나만 돌리려면 `cd server && node --test test/app.test.js`입니다.
+프론트 테스트는 `pnpm test`(Vitest, `vite.config.ts`의 `test` 블록 공유, `fetch`는 `vi.stubGlobal`로 가짜로 대체, 현재 대상 `src/lib/api`, `src/lib/imgagongRow.js`, `src/lib/masterItem.js`, `src/lib/deliverableRow.js`, `src/lib/xlsxToText.js`, `src/lib/xlsxImage.js`)이고, 파일 하나만 돌리려면 `pnpm vitest run src/lib/api/client.test.js`입니다. 백엔드(`server/`)는 `pnpm --filter server test`(node:test + supertest, DB 연결 모듈은 가짜로 대체, 커버리지 80% 미만이면 실패)이고, 파일 하나만 돌리려면 `cd server && node --test test/app.test.js`입니다.
 
 목 API 서버 (`mockup/`, 별도 스크립트 없음): `cd mockup && node server.js` → `http://localhost:3000/api/*`가 `swagger/swagger.json` 기반 목 응답을, `http://localhost:3000/docs`가 Swagger UI를 제공합니다.
 
@@ -37,10 +37,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 코드 주석과 UI 문구는 한국어이며, 주석은 학습용 설명 형태(예: Svelte를 React와 비교)로 씁니다. 새 코드도 같은 스타일을 따릅니다.
 
-프론트 라우트는 4개이며, `src/routes/+layout.svelte`의 `menuItems` 배열에 등록되어 있습니다 (라우트를 추가할 때는 여기에 메뉴 항목도 추가할 것):
+프론트 라우트는 5개이며, `src/routes/+layout.svelte`의 `menuItems` 배열에 등록되어 있습니다 (라우트를 추가할 때는 여기에 메뉴 항목도 추가할 것):
 
 - `/` Welcome
-- `/mapgen` MapGen Web — 엑셀 셀(탭으로 구분된 텍스트)을 붙여넣어 파싱하고, 칩 이미지 위에 module 사각형 / sawing line / 치수 화살표를 `<canvas>`로 그림 (약 1200줄짜리 단일 페이지 컴포넌트)
+- `/deliverables` Deliverables — 차수/공정명/엑셀 파일 등록·검색·페이지네이션·다운로드·삭제 (FE-4, 서버 연동)
+- `/mapgen` MapGen Web — 엑셀 셀(탭으로 구분된 텍스트)을 붙여넣어 파싱하고, 칩 이미지 위에 module 사각형 / sawing line / 치수 화살표를 `<canvas>`로 그림 (약 1200줄짜리 단일 페이지 컴포넌트). "📋 Excel 파일 선택"(FE-5, `DeliverablesPickerModal.svelte`)으로 Deliverables의 xlsx를 고르면 첫 시트를 탭 구분 텍스트로 바꿔 textarea에 넣고(`xlsxToText.js`), 첫 시트에 붙은 이미지를 참조 이미지로 쓴다(`xlsxImage.js`). 이미지가 없으면 이미지 영역에 "image가 없으니 excel 파일을 다시 확인하세요."를 표시
 - `/imgagong` 임가공 Plan — 계획 행 테이블 (추가 팝업, 기간 필터, 삭제)
 - `/master` Master Page — 임가공 Plan에서 쓰는 dropdown 항목을 추가/삭제
 
@@ -80,4 +81,5 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Prettier: 탭, 작은따옴표, 후행 쉼표 없음, 폭 100, Svelte/Tailwind 플러그인 사용 (Tailwind class 정렬은 `src/routes/layout.css`를 참조). 단, 기존 `src/lib`와 `src/routes` 파일 일부는 2칸 들여쓰기와 큰따옴표로 작성되어 있어 `pnpm lint`(`prettier --check`)가 경고를 낼 수 있습니다. 재포맷 diff가 허용될 때만, 수정하는 파일에 한해 `pnpm format`을 실행하세요.
 - `pnpm lint`는 현재 전체 저장소 기준으로 통과하지 않습니다(기존 문제, 별도 처리 전). prettier는 기존 포맷 파일과 CRLF 때문에 다수 파일에서 경고를 내고, eslint는 CommonJS인 `server/`·`mockup/`에 `@typescript-eslint/no-require-imports`, 기존 프론트 파일에 `svelte/require-each-key` 등을 냅니다. 작업할 때는 **새로 만들거나 수정한 파일에 한해** `npx prettier --check <파일>`을 통과시키고, eslint는 `no-require-imports` 외의 새 위반이 없는지 확인합니다.
 - 이 PC는 git `core.autocrlf=true`라 체크아웃된 파일이 CRLF일 수 있고, 그 경우 `prettier --check`가 경고를 냅니다. 커밋되는 내용은 LF이므로 `git diff`로 실제 변경이 없으면 무시해도 됩니다.
-- `static/`은 prettier 대상에서 제외됩니다. MapGen은 기본으로 `/sample/chip.png`(즉 `static/sample/chip.png`)를 사용하는데, 이 파일은 커밋되어 있지 않습니다 — 사용자가 이미지를 선택하거나 이 파일을 추가하기 전까지 canvas는 비어 있습니다.
+- `static/`은 prettier 대상에서 제외됩니다. MapGen은 기본으로 `/sample/chip.png`(즉 `static/sample/chip.png`)를 사용하는데, 이 파일은 커밋되어 있지 않습니다 — 사용자가 이미지를 선택하거나, 이미지가 붙은 Excel 파일을 "Excel 파일 선택"으로 불러오거나, 이 파일을 추가하기 전까지 canvas는 비어 있습니다.
+- SheetJS는 npm 레지스트리 `xlsx@0.18.5`(알려진 취약점 있음, 사내 업로드 파일만 읽는다는 전제로 선택)입니다. 셀 값은 `read`/`utils`로 읽고, 이미지는 SheetJS가 주지 않으므로 같은 패키지의 zip 리더 `CFB`로 xlsx 내부 XML을 따라가 꺼냅니다. SSR(Node)에서는 `xlsx`가 CommonJS로 로드되어 `import { CFB } from 'xlsx'`가 잡히지 않으므로 `vite.config.ts`에 `ssr.noExternal: ['xlsx']`를 두었습니다(지우면 `/mapgen`이 500).

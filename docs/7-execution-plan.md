@@ -328,7 +328,7 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 
 ### FE-5: MapGen Web에 "Excel 파일 선택" 입력 방식 추가 (FR-MG-02)
 
-**목표/범위**: 기존 붙여넣기(FR-MG-01)는 유지, "Excel 파일 선택" 버튼과 `DeliverablesPickerModal.svelte` 신규 팝업으로 Deliverables 목록에서 선택해 자동으로 도면을 그리게 한다.
+**목표/범위**: 기존 붙여넣기(FR-MG-01)는 유지, "Excel 파일 선택" 버튼과 `DeliverablesPickerModal.svelte` 신규 팝업으로 Deliverables 목록에서 선택해 자동으로 도면을 그리게 한다. 선택한 엑셀의 첫 번째 시트 이미지를 참조 이미지로 쓴다(FE-7 브라우저 점검 중 사용자 요청으로 추가).
 
 > **✅ 계획 단계에서 발견 → 해결된 기술 이슈**: `src/lib/parseModuleData.js`는 "엑셀에서 복사한 탭 구분 텍스트"를 입력으로 받도록 만들어져 있어(파일 자체 주석에도 명시), Deliverables의 `.xlsx` 바이너리를 곧바로 textarea에 넣을 수 없다는 문제를 실제 코드로 확인했다. **SheetJS(`xlsx` 패키지)를 클라이언트 파싱 라이브러리로 채택**하기로 결정하고 PRD 6절에 반영 완료했다.
 
@@ -339,8 +339,12 @@ DB-1~DB-4는 선형 의존관계(DB-1 → DB-2 → DB-3 → DB-4)이며, 백엔�
 - [x] textarea에 기존 데이터가 있으면 "덮어쓰시겠습니까?" 확인 후 진행
 - [x] 파일 다운로드 실패 시 에러 메시지, textarea는 비어있는 상태 유지
 - [x] 같은 항목을 두 번 선택해도 동일한 도면 재현(파싱 일관성)
+- [x] 선택한 엑셀의 첫 번째 시트 이미지가 "2) 참조 이미지 & 결과" 영역에 표시됨
+- [x] 첫 번째 시트에 이미지가 없으면 이미지 영역에 "image가 없으니 excel 파일을 다시 확인하세요." 표시
 
 > 검증 방식(원격 작업): 브라우저 대신 SheetJS로 만든 실제 xlsx를 실행 중인 백엔드에 등록 → 목록 → 다운로드 → `xlsxToText` → `parsePastedModuleData`까지 API 수준으로 확인(6개 항목 통과 — module/chip 인식, 같은 항목 두 번 선택 시 같은 텍스트, 다운로드 실패 시 에러 문구·textarea 유지) + `pnpm test`·`pnpm check` + 코드 확인. SheetJS는 npm 레지스트리 `xlsx@0.18.5`(알려진 취약점 있음, 사내 업로드 파일만 읽음)로 설치했다. 팝업 클릭·덮어쓰기 확인·canvas 도면 표시는 FE-7 통합 점검에서 브라우저로 확인한다.
+
+> 추가(FE-7 점검 중, 2026-10-09): Claude in Chrome으로 실제 브라우저에서 팝업 → 덮어쓰기 확인(취소/확인) → textarea 입력 → canvas 도면까지 확인했다. 사용자 요청으로 첫 시트 이미지 표시를 추가했다(`src/lib/xlsxImage.js` — SheetJS의 zip 리더 `CFB`로 `workbook.xml → 첫 시트 → drawing → media`를 따라감, 단위 테스트 9개). 사용자 샘플(첫 시트에 jpg)로 이미지 표시를, 이미지 없는 파일로 경고 표시를, 이후 이미지 직접 선택·이미지 있는 엑셀 재선택 시 복귀를 브라우저에서 확인했다. 이 과정에서 SSR에서 `xlsx`가 CommonJS로 로드되어 `/mapgen`이 500을 내는 문제를 발견해 `vite.config.ts`에 `ssr.noExternal: ['xlsx']`를 추가했다(`pnpm build` 통과).
 
 **의존성**: FE-4(Deliverables 목록/다운로드 재사용) / BE-4(신규 API 없음, 기존 재사용). xlsx 파싱 라이브러리 도입은 프론트 전용이라 백엔드 의존 없이 병렬 개발 가능(E2E 검증만 FE-4 이후)
 

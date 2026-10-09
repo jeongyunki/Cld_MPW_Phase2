@@ -19,6 +19,9 @@ export default defineConfig({
 			adapter: adapter()
 		})
 	],
+	// SSR(Node)에서 xlsx를 CommonJS로 불러오면 `import { CFB } from 'xlsx'`가 안 잡힌다.
+	// 브라우저·Vitest처럼 ESM 판(xlsx.mjs)을 번들에 넣어 쓰게 한다 (src/lib/xlsxImage.js)
+	ssr: { noExternal: ['xlsx'] },
 	// Vitest가 이 파일을 그대로 읽어 같은 플러그인/env 설정으로 테스트를 돌린다
 	test: {
 		include: ['src/**/*.test.js'],
@@ -31,7 +34,8 @@ export default defineConfig({
 				'src/lib/imgagongRow.js',
 				'src/lib/masterItem.js',
 				'src/lib/deliverableRow.js',
-				'src/lib/xlsxToText.js'
+				'src/lib/xlsxToText.js',
+				'src/lib/xlsxImage.js'
 			],
 			exclude: ['src/**/*.test.js'],
 			thresholds: { lines: 80, branches: 80, functions: 80 }
