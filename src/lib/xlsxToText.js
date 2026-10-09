@@ -28,5 +28,13 @@ export function xlsxToText(data) {
 	// header: 1 → 행마다 셀 값 배열, raw: true → 서식 문자열('1,234')이 아닌 원래 값(1234),
 	// defval: '' → 빈 셀도 자리를 유지해 뒤 열이 앞으로 당겨지지 않게 한다.
 	const rows = utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '', range });
-	return rows.map((cells) => cells.join('\t')).join('\n');
+
+	// 시트의 사용 범위가 실제 데이터보다 크면(예: A1:I1000) 끝에 빈 행이 수백 개 붙는다.
+	// 끝부분의 빈 행만 잘라낸다. 중간의 빈 행은 원본 구조 그대로 둔다.
+	let end = rows.length;
+	while (end > 0 && rows[end - 1].every((cell) => cell === '')) end--;
+	return rows
+		.slice(0, end)
+		.map((cells) => cells.join('\t'))
+		.join('\n');
 }

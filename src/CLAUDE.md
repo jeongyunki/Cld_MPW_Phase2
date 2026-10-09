@@ -20,7 +20,7 @@
 ### 구조와 규칙
 
 - Svelte 5 runes(`$state`, `$derived`, `$effect`). 공유 상태는 `src/lib/*.svelte.js` 모듈에 둔다. export한 `$state`는 재할당할 수 없으므로 배열·객체의 내용을 바꾸는 방식으로 갱신한다.
-- 라우트를 추가하면 `src/routes/+layout.svelte`의 `menuItems`에도 등록한다 (예외: `/login`은 등록하지 않는다).
+- 라우트를 추가하면 `src/routes/+layout.svelte`의 `menuItems`에도 등록한다 (예외: `/login`은 등록하지 않는다). 탭 제목은 메뉴 `label`이 그대로 쓰이고, 관리자 전용 화면은 `adminOnly: true`(메뉴 숨김 + 레이아웃 가드가 `/`로 보냄, Welcome 카드도 같은 표시).
 - 색은 하드코딩하지 말고 테마 CSS 변수(`var(--bg-page)` 등)를 쓴다. Tailwind v4.
 - 재사용 컴포넌트(팝업 등)는 PascalCase(`DeliverablesPickerModal.svelte`), 스토어·API 모듈은 camelCase(`deliverablesStore.svelte.js`, `api/imgagongPlans.js`).
 - API 연동 (FE-1 이후):

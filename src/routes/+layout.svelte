@@ -6,7 +6,7 @@
   // 사이드바에서 "지금 어떤 메뉴가 선택되어 있는지" 표시하는 데 쓴다.
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { auth, checkSession, logout } from '$lib/authStore.svelte.js';
+  import { auth, checkSession, logout, isAdmin } from '$lib/authStore.svelte.js';
   import { theme, toggleTheme } from '$lib/theme.svelte.js';
   import { loadMasterItems } from '$lib/masterStore.svelte.js';
 
@@ -60,21 +60,47 @@
       goto(`/login?redirectTo=${encodeURIComponent(pathname + search)}`, { replaceState: true });
     } else if (auth.user && onLogin) {
       goto(safeRedirect(searchParams.get('redirectTo')), { replaceState: true });
+    } else if (auth.user && isAdminOnlyPath(pathname) && !isAdmin()) {
+      // 관리자 전용 페이지(Master)에 일반 사용자가 주소로 직접 들어오면 Welcome으로 보낸다
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
+      goto('/', { replaceState: true });
     }
   });
 
   // 사이드바 메뉴 목록. 여기에 새 항목을 추가하면 메뉴가 하나씩 늘어난다.
   // href는 routes 폴더 구조와 그대로 대응된다 (예: '/mapgen' -> src/routes/mapgen/+page.svelte)
+  // adminOnly: 관리자(role === 'admin')에게만 메뉴를 보여주고, 일반 사용자는 주소로 들어와도 가드가 막는다.
   const menuItems = [
     { href: '/', label: 'Welcome', icon: '🏠' },
     { href: '/deliverables', label: 'Deliverables', icon: '📁' },
     { href: '/mapgen', label: 'MapGen Web', icon: '🗺️' },
     { href: '/imgagong', label: '임가공 Plan', icon: '📋' },
-    { href: '/master', label: 'Master Page', icon: '⚙️' },
+    { href: '/master', label: 'Master Page', icon: '⚙️', adminOnly: true },
   ];
+
+  // 위 가드 $effect에서 호출된다. menuItems는 반응형 값이 아니라 의존성이 늘지 않는다.
+  function isAdminOnlyPath(pathname) {
+    return menuItems.some((item) => item.adminOnly && item.href === pathname);
+  }
+
+  // $derived: auth.user가 바뀌면(로그인·로그아웃) 다시 계산된다 (≈ React의 useMemo)
+  const visibleMenuItems = $derived(menuItems.filter((item) => !item.adminOnly || isAdmin()));
+
+  // 관리자 전용 페이지를 일반 사용자가 연 순간(가드가 Welcome으로 보내기 전)에 내용이 잠깐 보이지 않게 한다
+  const blocked = $derived(isAdminOnlyPath($page.url.pathname) && !isAdmin());
+
+  // 브라우저 탭 제목: 현재 페이지 이름 (메뉴 label과 같음, 로그인 화면은 '로그인')
+  const pageTitle = $derived(
+    $page.url.pathname === '/login'
+      ? '로그인'
+      : (menuItems.find((item) => item.href === $page.url.pathname)?.label ?? 'MPW Plus')
+  );
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+  <title>{pageTitle}</title>
+  <link rel="icon" href={favicon} />
+</svelte:head>
 
 {#if $page.url.pathname === '/login'}
   <!-- 로그인 화면은 사이드바·테마 토글 없이 전체 화면 -->
@@ -91,7 +117,7 @@
     </div>
 
     <nav>
-      {#each menuItems as item}
+      {#each visibleMenuItems as item}
         <a href={item.href} class="nav-item" class:active={$page.url.pathname === item.href}>
           <span class="nav-icon">{item.icon}</span>
           <span>{item.label}</span>
@@ -120,7 +146,7 @@
       </span>
     </button>
 
-    {@render children()}
+    {#if !blocked}{@render children()}{/if}
   </main>
 </div>
 {/if}

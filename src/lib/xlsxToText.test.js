@@ -66,6 +66,24 @@ describe('xlsxToText', () => {
 		expect(text).toBe('\t\tx\ty');
 	});
 
+	it('X8 사용 범위가 데이터보다 크면 끝의 빈 행은 잘라내고, 중간의 빈 행은 유지한다', () => {
+		// 엑셀이 저장한 사용 범위(!ref)가 A1:C1000인 시트 (실제 데이터는 3행까지, 2행은 비어 있음)
+		const workbook = utils.book_new();
+		const sheet = utils.aoa_to_sheet([['a', 1, 2], [], ['b', 3, 4]]);
+		sheet['!ref'] = 'A1:C1000';
+		utils.book_append_sheet(workbook, sheet, 'S');
+		const text = xlsxToText(write(workbook, { type: 'array', bookType: 'xlsx' }));
+		expect(text).toBe('a\t1\t2\n\t\t\nb\t3\t4');
+	});
+
+	it('X9 데이터 없이 범위만 있는 시트는 빈 문자열', () => {
+		const workbook = utils.book_new();
+		const sheet = utils.aoa_to_sheet([['']]);
+		sheet['!ref'] = 'A1:C50';
+		utils.book_append_sheet(workbook, sheet, 'S');
+		expect(xlsxToText(write(workbook, { type: 'array', bookType: 'xlsx' }))).toBe('');
+	});
+
 	it('X5 두 번째 시트는 읽지 않는다', () => {
 		const text = xlsxToText(makeXlsx([['first']], { sheets: [['Sheet2', [['second']]]] }));
 		expect(text).toBe('first');

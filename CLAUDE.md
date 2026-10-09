@@ -37,13 +37,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 코드 주석과 UI 문구는 한국어이며, 주석은 학습용 설명 형태(예: Svelte를 React와 비교)로 씁니다. 새 코드도 같은 스타일을 따릅니다.
 
-프론트 라우트는 5개이며, `src/routes/+layout.svelte`의 `menuItems` 배열에 등록되어 있습니다 (라우트를 추가할 때는 여기에 메뉴 항목도 추가할 것):
+프론트 라우트는 5개이며, `src/routes/+layout.svelte`의 `menuItems` 배열에 등록되어 있습니다 (라우트를 추가할 때는 여기에 메뉴 항목도 추가할 것). 브라우저 탭 제목(`<title>`)은 레이아웃이 현재 경로의 메뉴 `label`로 정하므로(로그인 화면은 "로그인") 페이지마다 따로 두지 않습니다(#38). 관리자 전용 라우트는 메뉴 항목에 `adminOnly: true`를 붙이고, Welcome(`src/routes/+page.svelte`)의 카드에도 같은 표시를 합니다:
 
 - `/` Welcome
 - `/deliverables` Deliverables — 차수/공정명/엑셀 파일 등록·검색·페이지네이션·다운로드·삭제 (FE-4, 서버 연동)
 - `/mapgen` MapGen Web — 엑셀 셀(탭으로 구분된 텍스트)을 붙여넣어 파싱하고, 칩 이미지 위에 module 사각형 / sawing line / 치수 화살표를 `<canvas>`로 그림 (약 1200줄짜리 단일 페이지 컴포넌트). "📋 Excel 파일 선택"(FE-5, `DeliverablesPickerModal.svelte`)으로 Deliverables의 xlsx를 고르면 첫 시트를 탭 구분 텍스트로 바꿔 textarea에 넣고(`xlsxToText.js`), 첫 시트에 붙은 이미지를 참조 이미지로 쓴다(`xlsxImage.js`). 이미지가 없으면 이미지 영역에 "image가 없으니 excel 파일을 다시 확인하세요."를 표시
 - `/imgagong` 임가공 Plan — 계획 행 테이블 (추가 팝업, 기간 필터, 삭제)
-- `/master` Master Page — 임가공 Plan에서 쓰는 dropdown 항목을 추가/삭제
+- `/master` Master Page — 임가공 Plan에서 쓰는 dropdown 항목을 추가/삭제. **관리자 전용**: `menuItems`의 `adminOnly: true`로 일반 사용자에게는 사이드바 메뉴·Welcome 카드가 보이지 않고, 주소로 직접 들어오면 `+layout.svelte` 가드가 Welcome(`/`)으로 보낸다(#37)
 
 `/login`(로그인 화면, FE-2)은 예외로 `menuItems`에 넣지 않는다. 사이드바·테마 토글 없이 전체 화면으로 그려지고, `+layout.svelte`가 앱 시작 시 `GET /api/auth/me`로 세션을 1회 확인해 비로그인이면 `/login?redirectTo=<원래 경로>`로 보낸다.
 
