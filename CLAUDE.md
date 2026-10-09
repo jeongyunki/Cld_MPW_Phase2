@@ -30,8 +30,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "MPW Plus" 사내 도구의 **2차 개발분**입니다. 사내에서 운영 중인 1차 시스템(저장소 밖)에 붙을 기능을 개발하며, 한 저장소 안에 두 애플리케이션이 있습니다.
 
-- **프론트엔드** (루트, `src/`) — SvelteKit (Svelte 5 runes, Tailwind v4, `adapter-auto`). 아직 백엔드와 연동되지 않아 모든 데이터가 브라우저 메모리에만 있습니다(새로고침하면 사라짐). 단, 임가공 Plan(FE-6A)과 Master Page(FE-3)는 서버 연동 완료. 연동은 FE Task에서 스토어 내부를 교체하는 방식으로 진행합니다.
-- **백엔드** (`server/`) — Express 5 + Knex + PostgreSQL(로컬 DB `mpw_plus`). 실행계획의 Task 단위로 구현 중입니다.
+- **프론트엔드** (루트, `src/`) — SvelteKit (Svelte 5 runes, Tailwind v4, `adapter-auto`). 모든 화면이 백엔드와 연동되어 데이터는 서버 DB·파일 저장소에 영속됩니다(새로고침해도 유지). 화면은 스토어(`*.svelte.js`) → `src/lib/api/*.js`로만 서버를 부릅니다.
+- **백엔드** (`server/`) — Express 5 + Knex + PostgreSQL(로컬 DB `mpw_plus`). 실행계획의 BE Task가 모두 구현되었습니다.
+
+실행계획(`docs/7-execution-plan.md`)의 Task(DB-1~4, BE-1~7, FE-1~7)는 모두 완료되었고, 통합 점검(BE-7, FE-7)과 그 발견 사항(#36~#38)까지 처리됐습니다. 남은 것은 운영 준비 단계의 과제입니다: 배포 방식(현재 로컬 실행만), SheetJS `xlsx@0.18.5` 취약점 버전 교체 검토, 임가공 Plan 필수 필드의 업무 확인(`docs/7` "발견된 이슈"), 1차 시스템 인증 연동(`server/src/middleware/auth.js` 교체), 저장소 전체 `pnpm lint` 정비, CI.
 
 진행 상황은 `docs/7-execution-plan.md`의 완료 조건 체크박스와 GitHub 이슈(Stage 1~6, 제목 `[Stage N] <Task ID>: ...`)로 관리합니다. 작업은 이슈마다 `feature-<이슈 번호>` 브랜치 → PR → main merge(`Closes #N`) 순서로 하고, 백엔드 이슈는 `/issue-resolver-backend <이슈 번호>`로 처리합니다.
 

@@ -47,7 +47,7 @@ UPLOAD_DIR=
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-`ADMIN_*`는 5절의 관리자 seed가 사용합니다.
+`ADMIN_*`는 5절의 관리자 seed가 사용합니다. 일반 사용자(role `user`) 테스트 계정이 필요하면 `TEST_USER_EMAIL`/`TEST_USER_PASSWORD`/`TEST_USER_NAME`도 채웁니다(비워 두면 만들지 않음).
 
 `UPLOAD_DIR`은 업로드 파일 저장 루트이며 비우면 `server/uploads`입니다 (상대경로는 `server/` 기준, git 제외). Deliverables 파일은 `<루트>/deliverables/{id}.{xlsx|xls}`로 저장됩니다.
 
@@ -59,7 +59,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ```sh
 npx knex migrate:latest   # 테이블 4개 생성 (users, deliverables, imgagong_plans, master_items)
-npx knex seed:run         # master_items 초기 dropdown 20행 + 관리자 계정 1명 (재실행해도 중복 없음)
+npx knex seed:run         # master_items 초기 dropdown 20행 + 관리자 계정 1명 (+ TEST_USER_*가 있으면 일반 사용자 1명, 재실행해도 중복 없음)
 ```
 
 관리자 seed는 `.env`의 `ADMIN_*` 값으로 계정을 만들고, 재실행하면 `.env`의 현재 값으로 갱신합니다. 관리자만 다시 넣으려면:
