@@ -1,4 +1,6 @@
 <script>
+  import { isAdmin } from '$lib/authStore.svelte.js';
+
   // 각 도구로 이동하는 카드에 쓸 데이터.
   // 새 메뉴가 생기면 여기에 한 줄만 추가하면 Welcome 화면에도 카드가 나타난다.
   const cards = [
@@ -22,8 +24,12 @@
       href: '/master',
       tag: '신규',
       icon: '⚙️',
+      adminOnly: true, // 관리자에게만 보이는 카드 (사이드바 메뉴와 같은 기준)
     },
   ];
+
+  // $derived: 로그인 사용자가 바뀌면(관리자 ↔ 일반) 다시 계산된다 (≈ React의 useMemo)
+  const visibleCards = $derived(cards.filter((c) => !c.adminOnly || isAdmin()));
 </script>
 
 <div class="welcome">
@@ -34,7 +40,7 @@
   </section>
 
   <section class="cards">
-    {#each cards as c}
+    {#each visibleCards as c}
       <a class="tool-card" href={c.href}>
         <div class="tool-top">
           <span class="tool-icon">{c.icon}</span>
