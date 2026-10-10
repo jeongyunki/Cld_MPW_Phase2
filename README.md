@@ -60,7 +60,7 @@
 - 설계 문서: `docs/1`~`8` (도메인정의서 → PRD → 사용자 시나리오 → 구조 원칙 → 아키텍처 → ERD → 실행계획 → 와이어프레임). 진행 상황과 점검 결과는 `docs/7-execution-plan.md`에 있습니다.
 - API 스펙: `swagger/swagger.json` (목 서버 실행 시 http://localhost:3000/docs)
 - 개발 규칙: `CLAUDE.md`, `src/CLAUDE.md`, `server/CLAUDE.md`
-- 개발 과정 발표 자료: `docs/presentation/` — Claude Code로 진행한 22일간의 기록. HTML(발표·타임라인·요청 로그·용어 사전, 인터넷 없이 열림)과 PowerPoint(발표자 노트·용어 사전 부록 포함)
+- 개발 과정 발표 자료: `docs/presentation/` — Claude Code로 진행한 22일간의 기록. HTML(발표·타임라인·요청 로그·용어 사전, 인터넷 없이 열림), PowerPoint(발표자 노트·용어 사전 부록 포함), 50분 발표 대본(`presentation-script.md`)
 
 ## 현재 상태
 
