@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MPW Plus 바이브 코딩 여정</title>
+<title>MPW Plus 개발 편</title>
 <style>
 /* 레이아웃: 상단 고정 탭(발표 · 타임라인 · 요청 로그) + 터미널 기록장 메타포 — 입력은 ❯ 프롬프트 줄, 결과는 커밋/PR 칩 */
 :root {
@@ -237,7 +237,7 @@ tr:last-child td { border-bottom: 0; }
 
 <header class="topbar">
   <div class="topbar-inner">
-    <div class="brand"><span class="mono">❯</span> MPW Plus 바이브 코딩 여정</div>
+    <div class="brand"><span class="mono">❯</span> MPW Plus 개발 편</div>
     <div class="spacer"></div>
     <div class="tabs" role="tablist" aria-label="보기 선택">
       <button class="tab" role="tab" id="tab-deck" aria-selected="true" aria-controls="view-deck">발표</button>
@@ -255,7 +255,7 @@ tr:last-child td { border-bottom: 0; }
     <div class="deck" id="deck">
 
       <article class="slide cover">
-        <div class="slide-eyebrow">2026.09.18 → 2026.10.09 · 22일 · 사내 공유용</div>
+        <div class="slide-eyebrow">개발 편 · 2026.09.18 → 2026.10.09 · 22일 · 사내 공유용</div>
         <h1>Claude Code로 해 본<br>풀스택 바이브 코딩</h1>
         <p class="lead">"클로드 코드를 이용한 풀스택 개발" 동영상 강좌를 따라, 프론트엔드만 있던 사내 도구 프로토타입을 DB·백엔드·실시간 공유까지 갖춘 앱으로 만든 기록입니다. 제가 무엇을 입력했고, 무엇이 나왔고, 어떤 단계를 거쳤는지 시간순으로 정리했습니다.</p>
         <div class="cover-term" aria-label="첫 요청과 마지막 결과">
@@ -520,10 +520,49 @@ tr:last-child td { border-bottom: 0; }
             </table>
           </div>
           <div class="io">
-            <div class="io-out"><ul><li>계획한 Task 19개(DB 4 · BE 7 · FE 8) 완료, 열린 이슈 0</li><li>설계 문서와 README를 현재 상태로 정리</li><li>남은 일: 사내 서버 배포, 임가공 필수 필드 업무 확인, 1차 시스템 인증 연동</li></ul></div>
+            <div class="io-out"><ul><li>계획한 Task 19개(DB 4 · BE 7 · FE 8) 완료, 열린 이슈 0</li><li>설계 문서와 README를 현재 상태로 정리</li><li>남은 일: 운영 준비와 사내 배포 (다음 두 장의 계획 OP-1~OP-7)</li></ul></div>
             <div class="io-in"><p>운영 이관 건은 사내 인프라 확인이 필요한 것 같네. 일단 운영 이관은 나중으로 생각하고…</p></div>
           </div>
         </div>
+      </article>
+
+      <article class="slide">
+        <div class="slide-eyebrow">다음 단계 · 운영 계획 로드맵 · 2026-10-11 기준 예측</div>
+        <h2>개발을 마친 지금 예상하는 운영까지의 순서</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>번호</th><th>단계</th><th>예상하는 일</th><th>어디서 · 누구와</th><th>운영 후 실제</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">OP-1</td><td>배포 형태 결정</td><td>독립 시스템으로 운영할지, 1차 시스템에 병합할지. 로그인은 자체 계정인지 1차 연동인지</td><td>나 · 1차 개발자 · 관리자</td><td class="note">운영 편에서 기록</td></tr>
+              <tr><td class="mono">OP-2</td><td>운영 준비 개발</td><td>주소·포트·비밀값을 설정으로 분리, 서버 하나로 화면과 API 제공, 세션 DB 저장, 사용자 계정 관리, 자동 시작, 백업 스크립트, 설치 안내서</td><td>집 PC · Claude Code</td><td class="note">운영 편에서 기록</td></tr>
+              <tr><td class="mono">OP-3</td><td>회사 PC 설치 확인</td><td>안내서대로 설치, 사내 실제 엑셀로 MapGen 확인, 다른 PC에서 접속·동시 편집</td><td>회사 개인 PC · 혼자</td><td class="note">운영 편에서 기록</td></tr>
+              <tr><td class="mono">OP-4</td><td>운영 환경 준비</td><td>서버 OS·사양, PostgreSQL, 접속 주소, HTTPS 인증서, 방화벽</td><td>사내 서버 · 인프라 부서</td><td class="note">운영 편에서 기록</td></tr>
+              <tr><td class="mono">OP-5</td><td>설치 · 초기 데이터</td><td>설치, 실제 Master 항목 값, 관리자·사용자 계정 등록, 백업 자동화</td><td>사내 서버</td><td class="note">운영 편에서 기록</td></tr>
+              <tr><td class="mono">OP-6</td><td>시범 운영</td><td>소수 사용자가 실제 업무로 사용, 문제 수정</td><td>파일럿 사용자</td><td class="note">운영 편에서 기록</td></tr>
+              <tr><td class="mono">OP-7</td><td>정식 오픈 · 운영</td><td>매뉴얼과 공지, 정기 백업 확인, 업데이트 절차, 장애 대응</td><td>전체 사용자</td><td class="note">운영 편에서 기록</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">개발 단계에서 세운 예측입니다. 운영이 끝나면 운영 편에서 항목마다 "예상대로 / 바뀜 / 새로 생김"을 비교합니다.</p>
+      </article>
+
+      <article class="slide">
+        <div class="slide-eyebrow">다음 단계 · 운영 전에 확인할 것과 위험 · 2026-10-11 기준 예측</div>
+        <h2>사내 적용 전에 먼저 확인할 여섯 가지</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>번호</th><th>확인할 것</th><th>왜 중요한가</th><th>영향 단계</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">R-1</td><td>회사 PC에 Node.js · PostgreSQL · Git 설치 권한</td><td>설치가 막히면 회사 PC 확인 자체가 불가</td><td class="mono">OP-3</td></tr>
+              <tr><td class="mono">R-2</td><td>GitHub · npm 저장소 · SheetJS 배포처 접속 가능 여부</td><td>막혀 있으면 사내 프록시 설정이나 압축 파일 반입으로 설치 방식이 바뀜</td><td class="mono">OP-2 · OP-3</td></tr>
+              <tr><td class="mono">R-3</td><td>개인 저장소 코드 반입 · 오픈소스 사용 승인</td><td>보안 심의가 필요하면 일정이 늘어남</td><td class="mono">OP-3 · OP-4</td></tr>
+              <tr><td class="mono">R-4</td><td><b>사내 엑셀 파일의 MDM 암호화 여부</b></td><td>암호화된 파일은 지금 MapGen이 읽지 못함. 사내 적용의 가장 큰 변수</td><td class="mono">OP-2 · OP-3</td></tr>
+              <tr><td class="mono">R-5</td><td>사용자 100명 계정을 만드는 방법</td><td>지금은 회원가입·사용자 관리 화면이 없음 (시드로 만든 계정뿐)</td><td class="mono">OP-1 · OP-2</td></tr>
+              <tr><td class="mono">R-6</td><td>1차 시스템 병합 · 로그인 연동 방식</td><td>처음 계획은 "1차 개발자에게 코드 전달 후 병합"이라 독립 설치와 방향이 다름</td><td class="mono">OP-1</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">R-1~R-4는 회사에서 직접 확인할 항목입니다. 확인 결과에 따라 OP-2에서 만들 내용이 달라집니다.</p>
       </article>
 
       <article class="slide">
@@ -536,7 +575,7 @@ tr:last-child td { border-bottom: 0; }
           <div class="act"><span class="when">넷</span><span class="what"><b>반복은 커스텀 명령으로 굳힌다</b><span>이슈 번호 하나로 분석·테스트·구현·검증까지 같은 품질로 돈다.</span></span><span class="n"></span></div>
           <div class="act"><span class="when">다섯</span><span class="what"><b>마지막엔 사람이 화면으로 확인한다</b><span>API 검증으로 대신한 부분은 실제 브라우저 점검에서 빈 줄, 버튼 모양, 서버 500 같은 걸 더 찾아냈다.</span></span><span class="n"></span></div>
         </div>
-        <p class="note">상단의 "타임라인"과 "요청 로그" 탭에서 날짜별 사건과 실제 입력 원문(민감 정보는 가림)을 볼 수 있습니다.</p>
+        <p class="note">상단의 "타임라인"과 "요청 로그" 탭에서 날짜별 사건과 실제 입력 원문(민감 정보는 가림)을 볼 수 있습니다. 운영까지 마치면 운영 편 자료에서 앞의 운영 계획과 실제 결과를 비교하겠습니다.</p>
       </article>
 
     </div>
@@ -590,7 +629,8 @@ const PHASES = [
   { id: 'p4', name: '4막 · DB와 이슈화', range: '10/6', desc: 'DB 계층을 세우고 실행계획을 GitHub 이슈와 커스텀 명령으로 바꿈' },
   { id: 'p5', name: '5막 · 구현', range: '10/6 – 10/8', desc: '이슈 번호 하나씩 명령으로 처리 → PR → 머지' },
   { id: 'p6', name: '6막 · 통합 점검', range: '10/8 – 10/9', desc: '백엔드 API 72항목, 프론트는 실제 Chrome으로 점검' },
-  { id: 'p7', name: '7막 · 마무리', range: '10/9', desc: '점검 발견 사항 해결, 문서 현행화, 라이브러리 보안 교체' }
+  { id: 'p7', name: '7막 · 마무리', range: '10/9', desc: '점검 발견 사항 해결, 문서 현행화, 라이브러리 보안 교체' },
+  { id: 'p8', name: '다음 · 운영 계획 (예측)', range: '10/9 – 10/11', desc: '개발을 마친 시점에서 세운 운영·배포 계획. 운영 편에서 실제 결과와 비교할 기준선' }
 ];
 
 const EVENTS = [
@@ -755,7 +795,16 @@ const EVENTS = [
   { p: 'p7', d: '10/9 20:51', title: '로그인이 안 될 때', sub: '옛 개발 서버 정리',
     input: '로그인 버튼을 눌러도 화면이 그대로야 → Ctrl+C가 무슨 뜻이야? 이건 그냥 copy 기능 아니야?',
     did: ['10/7부터 떠 있던 옛 Vite가 5173을 잡고 있던 원인 정리', 'cmd 창 2개(프론트·백엔드) 운영법 안내'],
-    out: [] }
+    out: [] },
+
+  { p: 'p8', d: '10/9 21:00', title: '남은 운영 과제를 원격으로 할 수 있을까', sub: '배포는 사내 인프라 확인이 먼저',
+    input: '남은 운영 준비 과제도 회사에서 원격으로 진행할 수 있을까? → 운영 이관 건은 사내 인프라 확인이 필요한 것 같네. 일단 나중으로 생각하고…',
+    did: ['과제별로 원격으로 가능한 부분과 회사 정보가 필요한 부분을 나눠 정리', '운영 이관은 보류하고 발표 자료부터 정리하기로 함'],
+    out: [] },
+  { p: 'p8', d: '10/11', key: true, title: '운영 · 배포 계획 세우기', sub: 'OP-1~OP-7, 확인할 것 R-1~R-6',
+    input: '이제 "운영/배포" 단계를 해야 하지? 순차적으로 설명해 줘. 회사 개인 PC에 먼저 설치해서 동작을 확인하고, 최종적으로는 사내 서버에 설치해서 사용자들이 쓸 수 있게 하고 싶어.',
+    did: ['개발용 설정 중 운영에서 문제가 될 부분 점검(고정된 주소, 메모리 세션, 개발 모드 실행, 계정 관리 부재 등)', '운영까지의 단계 OP-1~OP-7과 먼저 확인할 위험 R-1~R-6 정리', '개발 편 자료에 계획을 넣고 운영 편에서 비교하기로 함'],
+    out: ['발표 16장 · 17장'] }
 ];
 
 /* ---------- 용어 사전 데이터 ----------
@@ -769,7 +818,8 @@ const GLOSS_CATS = [
   { id: 'api', name: 'API · 통신', desc: '화면과 서버가 주고받는 약속' },
   { id: 'qa', name: '품질 · 테스트 · 보안', desc: '제대로 동작하는지 확인하는 방법' },
   { id: 'git', name: '협업 (Git · GitHub)', desc: '변경 이력을 남기고 합치는 방법' },
-  { id: 'env', name: '실행 환경', desc: '내 PC에서 프로그램을 띄우고 관리하는 데 쓰인 말' }
+  { id: 'env', name: '실행 환경', desc: '내 PC에서 프로그램을 띄우고 관리하는 데 쓰인 말' },
+  { id: 'ops', name: '운영 · 배포 (다음 단계)', desc: '개발 이후 사내에 설치하고 쓰게 하는 단계의 말' }
 ];
 const GLOSSARY = [
   { c: 'ai', t: 'Claude Code', a: ['Claude Code'], full: 'Anthropic의 터미널용 AI 코딩 도구', short: '말로 지시하면 파일을 읽고 쓰고, 명령을 실행하면서 개발을 진행해 주는 프로그램.', role: '설계부터 구현, 테스트, GitHub 작업까지 "개발자" 역할을 맡음', here: '집 PC에서 실행하고 회사에서는 태블릿으로 원격 지시' },
@@ -847,6 +897,13 @@ const GLOSSARY = [
   { c: 'env', t: 'cmd · Ctrl+C', a: ['cmd', 'Ctrl+C'], full: '명령 프롬프트 · 실행 중지 키', short: 'cmd는 명령을 입력하는 검은 창. 그 창에서 Ctrl+C는 복사가 아니라 "지금 실행 중인 프로그램 멈추기".', role: '서버 켜고 끄기', here: '프론트용, 백엔드용 창 2개를 열어 둠' },
   { c: 'env', t: '개발자도구', a: ['개발자도구'], full: 'DevTools (F12)', short: '브라우저에 들어 있는 점검 도구. Network 탭에서 인터넷 끊김(Offline)을 흉내 낼 수 있다.', role: '화면 문제 조사', here: 'Offline은 이미 열린 실시간 연결은 끊지 못함' },
   { c: 'env', t: 'SheetJS', a: ['SheetJS', 'xlsx'], full: 'SheetJS (xlsx 라이브러리)', short: '엑셀 파일을 읽고 쓰는 JavaScript 라이브러리.', role: '브라우저에서 엑셀 읽기', here: 'MapGen 엑셀 선택, 첫 시트 이미지' },
+  { c: 'ops', t: '배포', a: ['배포'], full: 'Deployment', short: '개발한 프로그램을 실제 사용자가 쓰는 서버에 설치하고 실행하는 일.', role: '개발 결과를 사용자에게 전달', here: '다음 단계 OP-4~OP-5 (사내 서버)' },
+  { c: 'ops', t: '운영 환경', a: ['운영 환경', '운영 모드'], full: 'Production environment', short: '개발용 PC가 아니라 실제 사용자가 접속하는 서버와 그 설정. 개발 모드와 달리 자동 시작, 보안, 백업이 필요하다.', role: '안정적으로 계속 돌아가는 곳', here: '지금은 개발 모드(pnpm dev)로만 실행 중' },
+  { c: 'ops', t: 'HTTPS', a: ['HTTPS'], full: 'HTTP Secure', short: '브라우저와 서버 사이의 통신을 암호화하는 방식. 주소창의 자물쇠 표시. 인증서가 필요하다.', role: '로그인 정보 보호', here: 'OP-4에서 인프라 부서와 인증서 준비' },
+  { c: 'ops', t: '서비스 등록', a: ['자동 시작'], full: 'Windows 서비스 · Linux systemd', short: '서버 프로그램을 운영체제에 등록해 PC가 켜지면 자동으로 시작하고, 꺼지면 다시 띄우게 하는 것.', role: 'cmd 창을 열어 두지 않아도 계속 실행', here: 'OP-2에서 준비' },
+  { c: 'ops', t: '백업', a: ['백업'], full: 'Backup', short: 'DB와 업로드 파일을 정기적으로 복사해 두어, 장애가 나도 되돌릴 수 있게 하는 것.', role: '데이터 보호', here: 'OP-2 스크립트, OP-5 자동화' },
+  { c: 'ops', t: 'MDM 암호화', a: ['MDM'], full: '사내 문서 보안(암호화) 솔루션', short: '사내 문서 보안 솔루션이 파일을 암호화해, 허가된 프로그램에서만 열리게 하는 것.', role: '사내 문서 유출 방지', here: '암호화된 엑셀은 MapGen이 읽지 못함 (R-4)' },
+  { c: 'ops', t: '시범 운영', a: ['시범 운영', '파일럿'], full: 'Pilot', short: '정식 오픈 전에 소수 사용자가 실제 업무로 먼저 써 보며 문제를 찾는 기간.', role: '오픈 전 마지막 점검', here: 'OP-6' },
   { c: 'env', t: 'CDN', a: ['CDN'], full: 'Content Delivery Network', short: '파일을 여러 곳에서 빠르게 내려받게 해 주는 배포 서버망.', role: '라이브러리 배포처', here: 'SheetJS를 공식 CDN에서 설치' }
 ];
 
